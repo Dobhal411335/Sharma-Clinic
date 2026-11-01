@@ -1,0 +1,69 @@
+---
+alwaysApply: true
+description: Security, privacy, and explicit do-not rules
+---
+
+# Security and Do-Not Rules
+
+## Authentication and authorization
+
+-   Do not build customer signup/login in the initial release.
+-   Do not allow public admin or doctor registration.
+-   Do not store plaintext passwords. Hash credentials using a suitable
+    password hashing algorithm such as Argon2id or bcrypt.
+-   Do not authorize based only on client-side role state, hidden
+    navigation, or middleware.
+-   Do not allow doctors to read or mutate another doctor's data by
+    changing an ID.
+-   Do not let a browser choose its own role, payment amount, or payment
+    status.
+-   Admin creation and doctor provisioning must be controlled
+    server-side.
+
+## Payments
+
+-   Do not mark an appointment paid from a browser callback alone.
+-   Verify Razorpay payment signatures on the server and reconcile
+    payment state through verified webhooks.
+-   Make webhook processing idempotent; store provider
+    event/payment/order identifiers with unique constraints.
+-   Do not store card numbers, CVV, UPI PINs, or other payment
+    credentials.
+-   Do not silently alter historical payment amounts when an admin
+    changes a doctor's current fee.
+-   Keep refunds, failed payments, and payment attempts auditable.
+
+## Booking
+
+-   Do not rely on a client-side availability check as the final booking
+    guarantee.
+-   Prevent double booking with database constraints/transactions and a
+    server-side conflict check.
+-   Do not expose patient contact details in public responses.
+-   Do not assume a payment attempt is a confirmed appointment.
+-   Define expiry/cancellation behavior for unpaid or abandoned bookings
+    before launch.
+
+## Data and privacy
+
+-   Collect only patient information needed to arrange the appointment.
+-   Do not put sensitive patient data in logs, analytics events, URLs,
+    or error messages.
+-   Do not expose secrets or provider credentials to the browser.
+-   Do not use production patient data in development fixtures.
+-   Restrict reports to the authorized scope and audit administrative
+    changes.
+
+## Code quality
+
+-   Do not use `any` unless there is a documented, narrowly scoped
+    reason.
+-   Do not duplicate domain logic in pages, components, route handlers,
+    and webhooks.
+-   Do not call provider SDKs directly from UI components.
+-   Do not catch and suppress errors without logging safe diagnostic
+    context.
+-   Do not claim compliance with a healthcare/privacy regulation without
+    a verified assessment.
+-   Do not invent clinic details, doctor biographies, medical claims,
+    prices, or policies.

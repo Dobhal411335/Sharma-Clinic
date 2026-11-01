@@ -1,0 +1,118 @@
+---
+description: Architecture, routing, modules, and boundaries
+globs:
+- src/\*\*/\*
+---
+
+# Architecture Rules
+
+## Architectural style
+
+Use a modular monolith in one Next.js application. Organize by domain
+and keep UI, application services, integrations, and persistence
+separated.
+
+Recommended structure:
+
+``` text
+src/
+  app/
+    (public)/
+      page.tsx
+      about/page.tsx
+      doctors/page.tsx
+      doctors/[slug]/page.tsx
+      services/page.tsx
+      blog/page.tsx
+      blog/[slug]/page.tsx
+      book-appointment/page.tsx
+    (staff-auth)/
+      login/page.tsx
+    admin/
+      layout.tsx
+      dashboard/page.tsx
+      doctors/
+      appointments/
+      payments/
+      content/
+      settings/
+    doctor/
+      layout.tsx
+      dashboard/page.tsx
+      availability/
+      appointments/
+      profile/
+    api/
+      auth/[...nextauth]/route.ts
+      public/
+      admin/
+      doctor/
+      webhooks/razorpay/route.ts
+  components/
+    ui/
+    public/
+    admin/
+    doctor/
+    shared/
+  features/
+    appointments/
+    availability/
+    doctors/
+    payments/
+    content/
+    reports/
+    users/
+  lib/
+    auth/
+    db/
+    env/
+    validation/
+    utils/
+  server/
+    services/
+    repositories/
+    integrations/
+      razorpay/
+      cloudinary/
+      brevo/
+  types/
+
+prisma/
+  schema.prisma
+docs/
+.cursor/rules/
+```
+
+The exact tree may evolve, but preserve these boundaries.
+
+## Request flow
+
+UI / route handler -\> input validation -\> authentication and
+authorization -\> domain service -\> repository/Prisma -\> response.
+
+External provider flow: Domain service -\> provider adapter -\> provider
+API. Keep Razorpay, Cloudinary, and Brevo SDK usage inside their
+respective adapters.
+
+## Rendering
+
+-   Public SEO pages should use Server Components and metadata.
+-   Staff dashboards should fetch sensitive data on the server.
+-   Do not expose full database records to client components.
+-   Use client components only for interactive controls such as
+    calendars, filters, and form state.
+
+## Route protection
+
+-   `/admin/**` requires authenticated ADMIN.
+-   `/doctor/**` requires authenticated DOCTOR.
+-   Staff login is shared at `/login`; redirect after login based on
+    role.
+-   Public website and booking pages do not require customer login.
+-   API authorization must be repeated server-side even when the page
+    layout is protected.
+
+## Configuration
+
+Use validated environment variables in one server-only module. Keep
+`.env.example` committed with empty placeholders; never commit `.env`.

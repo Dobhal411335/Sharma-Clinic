@@ -1,0 +1,68 @@
+---
+alwaysApply: true
+description: Sharma Clinic project-wide context and engineering
+  standards
+---
+
+# Sharma Clinic --- Project Context
+
+## Product
+
+Build a clinic website and operations portal for Sharma Clinic using
+Next.js App Router and TypeScript. The product has: - A public,
+customer-facing website with no customer account/login requirement. - A
+single staff login entry point for ADMIN and DOCTOR roles. - Separate
+admin and doctor dashboards with server-enforced role permissions. -
+Doctor availability, appointment booking, payment collection, and
+reporting.
+
+## Stack
+
+-   Next.js App Router, React, strict TypeScript
+-   PostgreSQL with Prisma
+-   Auth.js Credentials provider for staff authentication
+-   Tailwind CSS, shadcn/ui, Lucide React
+-   Razorpay for payments
+-   Cloudinary for managed image assets
+-   Brevo for transactional email
+
+Do not add another framework, database, ORM, authentication provider, or
+payment provider without an explicit decision.
+
+## Engineering principles
+
+-   Prefer a modular monolith. Do not introduce microservices.
+-   Prefer Server Components; add Client Components only for interaction
+    that requires browser state.
+-   Keep business logic in service/domain modules, not React components
+    or route handlers.
+-   Validate all untrusted input on the server with a schema validator.
+-   Enforce authorization on every protected server action/API route.
+    Middleware is only an additional navigation guard.
+-   Use database transactions for multi-record booking/payment state
+    changes.
+-   Use integer minor currency units (paise) for INR amounts. Never use
+    floating-point arithmetic for money.
+-   Store timestamps in UTC; display in the clinic's configured
+    timezone.
+-   Never trust payment status, role, price, doctor ID, or appointment
+    availability supplied by the browser.
+-   Keep secrets server-only. Never prefix secrets with NEXT_PUBLIC\_.
+-   Use structured errors and consistent API response contracts.
+-   Add tests for booking conflicts, permissions, payment verification,
+    and critical state transitions.
+
+## Roles
+
+-   ADMIN: platform-wide management.
+-   DOCTOR: access only to their own profile, availability,
+    appointments, and permitted reports.
+-   CUSTOMER/PATIENT: public booking flow only; no account is required
+    in the initial release.
+
+## Scope discipline
+
+Do not implement external integrations or product features before the
+corresponding task is explicitly requested. Do not invent
+clinic-specific content, fees, policies, doctor details, addresses, or
+contact information. Use clearly marked placeholders until confirmed.

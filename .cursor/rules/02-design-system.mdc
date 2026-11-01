@@ -1,0 +1,62 @@
+---
+description: Visual design and UI behavior for Sharma Clinic
+globs:
+- src/app/\*\*/\*
+- src/components/\*\*/\*
+---
+
+# Design System
+
+## Brand direction
+
+Use a trustworthy, calm, modern healthcare identity. The supplied Sharma
+Clinic reference PDF is a visual starting point: - Page 1: blue
+navigation bar, large healthcare hero, supporting feature cards. - Page
+2: doctor cards, specialty filters, services, and split content
+section. - Page 3: health article/blog cards and a structured footer.
+
+Use these as inspiration, not as a pixel-perfect copy. The reference
+includes placeholder/non-clinic content; do not reproduce unrelated
+ecommerce copy, product shopping UI, or invented claims.
+
+## Visual language
+
+-   Primary: professional clinic blue.
+-   Supporting: white, light neutral backgrounds, subtle teal accents.
+-   Use restrained shadows, clear borders, generous whitespace, and
+    readable contrast.
+-   Typography should be clean and accessible; establish consistent
+    heading, body, label, and caption scales.
+-   Use Lucide React icons consistently. Avoid emoji as interface icons.
+-   Use real clinic/doctor imagery only when supplied or approved. Do
+    not invent doctor identities, credentials, or testimonials.
+
+## Responsive behavior
+
+Design mobile-first. Public pages, booking forms, tables, calendars, and
+dashboards must work on small screens. Tables may become stacked cards
+on mobile where appropriate.
+
+## Components
+
+Prefer shadcn/ui primitives and shared wrappers. Build consistent: -
+Header/navigation and footer - Buttons, form fields, validation
+messages - Doctor cards and service cards - Appointment status badges -
+Data tables, filters, pagination - Dashboard summary cards and charts -
+Confirmation dialogs and toast feedback
+
+## Accessibility
+
+Use semantic HTML, keyboard-operable controls, visible focus states,
+associated labels, accessible dialogs, sufficient contrast, and
+meaningful image alt text.
+
+## UX rules
+
+-   Show loading, empty, success, and error states.
+-   Confirm destructive actions.
+-   Do not communicate payment success until server-side verification
+    confirms it.
+-   Clearly display appointment date, time, doctor, fee, and payment
+    state before checkout.
+-   Avoid exposing patient details in public pages or URLs.
