@@ -4,12 +4,47 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum Role {
   ADMIN
   DOCTOR
+}
+
+enum AppointmentStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  COMPLETED
+}
+
+/// Payment attempt lifecycle. Appointment status is tracked separately.
+enum PaymentStatus {
+  CREATED
+  ORDER_CREATED
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  RAZORPAY
+}
+
+enum WebhookProcessingStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
 }
 
 model User {
@@ -22,7 +57,144 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  doctor Doctor?
+
   @@index([role])
   @@index([isActive])
   @@map("users")
+}
+
+/// Minimal doctor profile sufficient for fee snapshots and payment flows.
+/// Display names / fees are schema fields — not hardcoded product claims.
+model Doctor {
+  id                   String   @id @default(cuid())
+  userId               String?  @unique
+  user                 User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  displayName          String
+  /// Current consultation fee in integer paise. Historical payments keep their own snapshot.
+  consultationFeePaise Int
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([isActive])
+  @@map("doctors")
+}
+
+/// Minimal appointment model for booking + payment. Patient PII must never appear in public payment responses.
+model Appointment {
+  id               String            @id @default(cuid())
+  bookingReference String            @unique @default(cuid())
+  doctorId         String
+  doctor           Doctor            @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patientName      String
+  patientEmail     String
+  patientPhone     String?
+  startsAt         DateTime
+  endsAt           DateTime?
+  status           AppointmentStatus @default(PENDING_PAYMENT)
+  /// Fee locked at booking time (paise). Never trust client-supplied amounts.
+  feeSnapshotPaise Int
+  currency         String            @default("INR")
+  /// Opaque ownership token for public booking flows (not a login).
+  accessToken      String            @unique @default(cuid())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  payments Payment[]
+
+  @@index([doctorId])
+  @@index([status])
+  @@index([startsAt])
+  @@map("appointments")
+}
+
+model Payment {
+  id                 String          @id @default(cuid())
+  appointmentId      String
+  appointment        Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  attemptNumber      Int
+  idempotencyKey     String          @unique
+  provider           PaymentProvider @default(RAZORPAY)
+  providerOrderId    String?         @unique
+  providerPaymentId  String?         @unique
+  amountPaise        Int
+  currency           String          @default("INR")
+  /// Historical fee snapshot for this attempt (never mutated when doctor fee changes).
+  feeSnapshotPaise   Int
+  doctorFeePaise     Int
+  status             PaymentStatus   @default(CREATED)
+  failureReason      String?
+  paidAt             DateTime?
+  /// Set to appointmentId while attempt is active (CREATED|ORDER_CREATED|PENDING); null when terminal.
+  /// Unique constraint enforces one active payment attempt per appointment at the DB level.
+  activeAppointmentId String?
+  needsReconciliation Boolean        @default(false)
+  reconciliationNote  String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  refunds Refund[]
+
+  @@unique([appointmentId, attemptNumber])
+  @@unique([activeAppointmentId])
+  @@index([appointmentId, status])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payments")
+}
+
+model PaymentWebhookEvent {
+  id               String                  @id @default(cuid())
+  providerEventId  String                  @unique
+  eventType        String
+  processingStatus WebhookProcessingStatus @default(RECEIVED)
+  /// Verified webhook JSON. Do not log patient PII from this payload.
+  payload          Json
+  receivedAt       DateTime                @default(now())
+  processedAt      DateTime?
+  failureReason    String?
+
+  @@index([eventType])
+  @@index([processingStatus])
+  @@index([receivedAt])
+  @@map("payment_webhook_events")
+}
+
+model Refund {
+  id               String       @id @default(cuid())
+  paymentId        String
+  payment          Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  providerRefundId String?      @unique
+  idempotencyKey   String       @unique
+  amountPaise      Int
+  status           RefundStatus @default(PENDING)
+  reason           String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([paymentId])
+  @@index([status])
+  @@map("refunds")
+}
+
+/// Append-only security/ops audit trail (separate from stdout app logs).
+/// Never store passwords, tokens, payment secrets, or medical/patient bodies.
+/// Readers must be ADMIN-only — doctors must not query this table via any API.
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

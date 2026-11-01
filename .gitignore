@@ -8,3 +8,6 @@ out/
 prisma/*.db
 *.tsbuildinfo
 npm-debug.log*
+# Brevo offline preview artifacts (keep generate-previews.ts)
+src/lib/brevo/.preview/*
+!src/lib/brevo/.preview/generate-previews.ts
