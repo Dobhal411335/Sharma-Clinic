@@ -1,103 +1,120 @@
-import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 
-/**
- * Sharma Clinic centralized logging + audit foundation.
- *
- * App logs → stdout/stderr (Pino). Audit events → PostgreSQL `audit_logs`.
- * Doctors must not read admin audits — no public audit read API here.
- */
+import {
+  createLoggerConfig,
+  formatLogLine,
+  shouldLog,
+  type FrontendLogLevel,
+} from "./logger.config";
+import { redactValue } from "./logger.redaction";
 
-export { getLoggerConfig, SERVICE_NAME } from "./config";
-export type { LoggerRuntimeConfig } from "./config";
+export { sanitizeUrl, redactValue, REDACTED, isSensitiveKey } from "./logger.redaction";
+export type { FrontendLogLevel } from "./logger.config";
+export { createLoggerConfig, shouldLog } from "./logger.config";
 
-export {
-  REQUEST_ID_HEADER,
-  createRequestStore,
-  generateRequestId,
-  getRequestId,
-  getRequestStore,
-  isValidRequestId,
-  resolveRequestId,
-  runWithRequestContext,
-  runWithRequestContextAsync,
-  updateRequestStore,
-} from "./context";
+export type LogContext = Record<string, unknown>;
 
-export {
-  createLoggerFromConfig,
-  getLogger,
-  logger,
-  resetLoggerForTests,
-} from "./logger";
-export type { AppLogger } from "./logger";
+type LogMethod = (message: string, context?: LogContext) => void;
 
-export {
-  logError,
-  logDatabaseError,
-  logExternalServiceError,
-  normalizeError,
-  toClientErrorBody,
-} from "./error-logger";
+export interface FrontendLogger {
+  debug: LogMethod;
+  info: LogMethod;
+  warn: LogMethod;
+  error: LogMethod;
+}
 
-export {
-  logRequest,
-  logResponse,
-  setRequestUser,
-  withRequestLogging,
-} from "./request-logger";
-export type {
-  ApiRouteContext,
-  ApiRouteHandler,
-  WithRequestLoggingOptions,
-} from "./request-logger";
+function write(
+  level: FrontendLogLevel,
+  service: string,
+  message: string,
+  context?: LogContext,
+  nodeEnv?: string,
+): void {
+  const config = createLoggerConfig(service, nodeEnv ?? process.env.NODE_ENV);
+  if (!shouldLog(config, level)) {
+    return;
+  }
 
-export { logPerformance, withPerformanceLogging } from "./performance-logger";
+  try {
+    const safe = context ? (redactValue(context) as LogContext) : undefined;
+    const line = formatLogLine(level, service, message, safe);
+    const consoleMethod =
+      level === "debug"
+        ? "debug"
+        : level === "info"
+          ? "info"
+          : level === "warn"
+            ? "warn"
+            : "error";
+    // eslint-disable-next-line no-console -- centralized frontend logger sink
+    console[consoleMethod](line);
+  } catch {
+    // Logging must never break the UI.
+  }
+}
 
-export {
-  logAuditEvent,
-  setAuditPrismaClientForTests,
-} from "./audit-logger";
-export type { AuditPrismaClient } from "./audit-logger";
+export function createFrontendLogger(
+  service = "clinic-storefront",
+  nodeEnv?: string,
+): FrontendLogger {
+  return {
+    debug: (message, context) => write("debug", service, message, context, nodeEnv),
+    info: (message, context) => write("info", service, message, context, nodeEnv),
+    warn: (message, context) => write("warn", service, message, context, nodeEnv),
+    error: (message, context) => write("error", service, message, context, nodeEnv),
+  };
+}
 
-export {
-  MASKED_EMAIL,
-  MASKED_PHONE,
-  PINO_REDACT_PATHS,
-  REDACTED,
-  maskEmail,
-  maskPhone,
-  omitEmptyFields,
-  sanitizeForLogging,
-  sanitizeString,
-} from "./sanitizers";
+export const logger = createFrontendLogger("clinic-storefront");
 
-export type {
-  AuditEventInput,
-  AuditLogRecord,
-  ExternalServiceName,
-  LogContext,
-  LogErrorOptions,
-  LogFormat,
-  LogLevel,
-  LogPerformanceOptions,
-  LogRequestOptions,
-  LogResponseOptions,
-  NormalizedError,
-  RequestStore,
-  SafeLogBindings,
-} from "./types";
-export { LOG_LEVELS } from "./types";
+export const REQUEST_ID_HEADER = "x-request-id";
 
-/**
- * Razorpay service instrumentation checklist (wired in `src/lib/razorpay`).
- * Keep logs id-only — never signatures, key secrets, card data, or patient PII.
- * See `INTEGRATION.md` for the full wiring table.
- */
-export const RAZORPAY_LOG_INTEGRATION_POINTS = [
-  "createOrder",
-  "verifyPayment",
-  "processWebhook",
-  "refundPayment",
-  "capturePayment",
-  "reconcilePayment",
-] as const;
+type RequestStore = { requestId?: string; userId?: string; role?: string };
+
+const requestStore = new AsyncLocalStorage<RequestStore>();
+
+export function getRequestId(): string | undefined {
+  return requestStore.getStore()?.requestId;
+}
+
+export function setRequestUser(userId: string, role: string): void {
+  const current = requestStore.getStore();
+  if (!current) return;
+  current.userId = userId;
+  current.role = role;
+}
+
+export function logError(error: unknown, context?: LogContext): void {
+  logger.error(error instanceof Error ? error.message : "Request failed", {
+    ...context,
+    errorName: error instanceof Error ? error.name : "unknown",
+  });
+}
+
+export type ApiRouteContext = {
+  params?:
+    | Record<string, string | string[]>
+    | Promise<Record<string, string | string[]>>;
+};
+
+export function logAuditEvent(
+  message: string | LogContext,
+  context?: LogContext,
+): void {
+  if (typeof message === "string") {
+    logger.info(message, context);
+    return;
+  }
+  const action = typeof message.action === "string" ? message.action : "audit";
+  logger.info(action, message);
+}
+
+export function withRequestLogging<Args extends unknown[]>(
+  handler: (request: Request, ...args: Args) => Promise<Response>,
+  _meta?: { api?: string },
+): (request: Request, ...args: Args) => Promise<Response> {
+  return async (request: Request, ...args: Args) => {
+    const requestId = request.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
+    return requestStore.run({ requestId }, () => handler(request, ...args));
+  };
+}

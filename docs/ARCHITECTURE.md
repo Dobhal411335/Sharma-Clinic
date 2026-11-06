@@ -33,18 +33,22 @@ domain service. 5. Return the standard response.
 
 ## 4. Authentication
 
--   Auth.js Credentials provider for staff.
--   Store password hashes only.
--   Role values: ADMIN, DOCTOR.
--   No public signup endpoint.
--   Admin user is provisioned securely outside public registration.
--   Admin provisions doctor accounts.
--   Use secure, HTTP-only, same-site cookies and production HTTPS.
--   Validate role and active status on the server for every protected
-    request.
--   Decide JWT versus database sessions based on the final Auth.js
-    adapter/session design; do not assume middleware is the
-    authorization boundary.
+-   Auth.js v5 Credentials provider for staff (JWT sessions; no Prisma
+    Adapter / OAuth / patient accounts).
+-   Passwords hashed with Argon2id (`@node-rs/argon2`); bcrypt hashes
+    remain verifiable for migration.
+-   Role values: ADMIN, DOCTOR. Session/JWT carry `id`, `role`, and
+    `doctorId` (resolved from `Doctor.userId`, not a User column).
+-   Initial admin via `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`
+    in seed (idempotent; never overwrites an existing password).
+-   Login rate limits are Postgres-backed (`AuthRateLimit`), not
+    in-memory-only.
+-   Next.js 16 uses `src/proxy.ts` for early `/admin` `/doctor` `/login`
+    redirects; server layouts and `requireAdmin` / `requireDoctor`
+    guards remain the authorization boundary.
+-   No public signup endpoint. Secure cookies (`httpOnly`, `SameSite=Lax`,
+    `Secure` in production); HTTPS public URL via `AUTH_URL` /
+    `AUTH_TRUST_HOST` for Coolify reverse proxy.
 
 ## 5. Booking lifecycle
 
@@ -99,16 +103,45 @@ Never trust client-supplied amount or a frontend success callback.
 
 ## 9. Deployment
 
--   Next.js application on a supported Node hosting platform.
--   Managed PostgreSQL with backups.
--   Production secrets in hosting secret manager.
+Primary target: **Hostinger VPS + Coolify** reverse proxy (HTTPS at the
+proxy; Node may see HTTP internally). See **`docs/DEPLOYMENT.md`** for
+env vars (`AUTH_SECRET`, `AUTH_URL`, `AUTH_TRUST_HOST`, `DATABASE_URL`,
+`NEXT_PUBLIC_APP_URL`), cookie notes, and safe
+`prisma migrate deploy` steps.
+
+-   Next.js application on Node 20.9+ (Coolify or equivalent).
+-   Managed PostgreSQL with backups; connect only via `DATABASE_URL`.
+-   Production secrets in Coolify env / secret store — never
+    `NEXT_PUBLIC_` for secrets; do not require `VERCEL_URL`.
+-   Auth.js: `AUTH_TRUST_HOST=true` + public `AUTH_URL` behind the proxy.
 -   Separate development/staging/production provider credentials.
 -   Configure webhook URLs and verify provider signatures.
--   Run migrations as a controlled deployment step.
+-   Run migrations as a controlled deployment step
+    (`npm run prisma:migrate:deploy` only — never reset).
 -   Add monitoring for application errors, webhook failures, and
     booking/payment reconciliation.
 
-## 10. Architecture decisions requiring confirmation
+## 10. Persistence decisions (implemented)
+
+-   Single PostgreSQL database; Prisma 7 with `prisma.config.ts` and
+    `@prisma/adapter-pg` (see `docs/DATABASE.md`).
+-   Overlapping active appointments blocked with a PostgreSQL
+    `EXCLUDE USING gist` constraint on `(doctorId, tsrange(startsAt, endsAt))`
+    for statuses `PENDING_PAYMENT` and `CONFIRMED`.
+-   One active payment attempt per appointment enforced via
+    `Payment.activeAppointmentId` uniqueness (plus partial unique index).
+-   Payment/refund `amountPaise > 0` CHECKs; refund total cap remains
+    application-transactional (`REFUND_CAP_POLICY`).
+-   Durable `NotificationOutbox` / `EmailLog` tables exist; workers/schedulers
+    are not part of the initial persistence delivery. Outbox dedupe uses a
+    unique `idempotencyKey`.
+-   Staff password hashing uses Argon2id (seed + Auth.js). Login rate
+    limits use the additive `auth_rate_limits` table.
+-   Full domain models (specialties, patients, availability, CMS, blog, media,
+    clinic settings, audit before/after) live in one schema — see
+    `docs/DATABASE.md`.
+
+## 11. Architecture decisions requiring confirmation
 
 -   Clinic timezone and business hours.
 -   Slot reservation expiry duration.

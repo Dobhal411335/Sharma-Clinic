@@ -1,8 +1,5 @@
-import { getServerSession } from "next-auth";
-
-import { authOptions } from "@/lib/auth/config";
-import { hasRole } from "@/lib/auth/authorization";
-import { db } from "@/lib/db/prisma";
+import { auth } from "@/auth";
+import { hasRole } from "@/lib/auth/permissions";
 import {
   setRequestUser,
   withRequestLogging,
@@ -60,32 +57,28 @@ async function getHandler(
   const accessToken = url.searchParams.get("accessToken") ?? undefined;
 
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     let doctorId: string | undefined;
 
     if (session?.user) {
       setRequestUser(session.user.id, session.user.role);
     }
 
-    if (session?.user && hasRole(session, "DOCTOR")) {
-      const doctor = await db.doctor.findFirst({
-        where: { userId: session.user.id },
-        select: { id: true },
-      });
-      if (!doctor) {
+    if (session?.user && hasRole(session.user, "DOCTOR")) {
+      if (!session.user.doctorId) {
         return jsonError(
           403,
           "DOCTOR_PROFILE_MISSING",
           "Doctor profile not linked.",
         );
       }
-      doctorId = doctor.id;
+      doctorId = session.user.doctorId;
     }
 
     // ADMIN can read any; DOCTOR is scoped; public uses opaque id (+ optional token).
     const data = await getPaymentStatusForAppointment(appointmentId, {
       accessToken,
-      doctorId: hasRole(session, "ADMIN") ? undefined : doctorId,
+      doctorId: hasRole(session?.user, "ADMIN") ? undefined : doctorId,
     });
 
     return jsonSuccess(data);

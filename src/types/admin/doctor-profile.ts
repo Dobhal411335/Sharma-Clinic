@@ -1,0 +1,64 @@
+export type DoctorProfileDto = {
+  id: string;
+  siteCode: "IN" | "COM";
+  name: string;
+  specializations: string[];
+  about: string;
+  experienceYears: number;
+  state: string;
+  city: string;
+  phone: string;
+  email: string;
+  location: string;
+  education: string;
+  degree: string;
+  workHistory: string;
+  workDays: string;
+  photoUrl: string;
+  photoPublicId: string;
+  active: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DoctorProfileFormValues = {
+  prefix?: string;
+  name: string;
+  specializations: string[];
+  about: string;
+  experienceYears: string;
+  state: string;
+  city: string;
+  phone: string;
+  email: string;
+  location: string;
+  education: string;
+  degree: string;
+  workHistory: string;
+  workDays: string;
+  photoUrl: string;
+  photoPublicId: string;
+  active: boolean;
+  order: string;
+};
+
+export type DoctorProfilePayload = {
+  name: string;
+  specializations: string[];
+  about: string;
+  experienceYears: number;
+  state: string;
+  city: string;
+  phone: string;
+  email: string;
+  location: string;
+  education: string;
+  degree: string;
+  workHistory: string;
+  workDays: string;
+  photoUrl: string;
+  photoPublicId: string;
+  active: boolean;
+  order?: number;
+};

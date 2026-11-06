@@ -1,3 +1,7 @@
+// Sharma Clinic — PostgreSQL schema (Prisma 7).
+// Datasource URL lives in prisma.config.ts (not here).
+// Money: integer paise. Appointment instants: UTC. Availability wall-clock: clinic TZ.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -6,6 +10,9 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+/// Staff roles only. Semantic “UserRole”; name kept as `Role` for Auth.js / Razorpay compat.
 enum Role {
   ADMIN
   DOCTOR
@@ -15,8 +22,9 @@ enum AppointmentStatus {
   PENDING_PAYMENT
   CONFIRMED
   CANCELLED
-  EXPIRED
   COMPLETED
+  NO_SHOW
+  EXPIRED
 }
 
 /// Payment attempt lifecycle. Appointment status is tracked separately.
@@ -27,6 +35,7 @@ enum PaymentStatus {
   PAID
   FAILED
   EXPIRED
+  PARTIALLY_REFUNDED
   REFUNDED
 }
 
@@ -36,114 +45,325 @@ enum PaymentProvider {
 
 enum WebhookProcessingStatus {
   RECEIVED
+  PROCESSING
   PROCESSED
   IGNORED
   FAILED
 }
 
 enum RefundStatus {
+  CREATED
   PENDING
   PROCESSED
   FAILED
 }
 
-model User {
-  id           String   @id @default(cuid())
-  name         String?
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(DOCTOR)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+enum RefundType {
+  FULL
+  PARTIAL
+}
 
-  doctor Doctor?
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum AvailabilityExceptionType {
+  UNAVAILABLE
+  EXTRA_HOURS
+  OVERRIDE
+}
+
+enum MediaProvider {
+  CLOUDINARY
+}
+
+enum MediaResourceType {
+  IMAGE
+  RAW
+  VIDEO
+  AUTO
+}
+
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EmailProvider {
+  BREVO
+}
+
+/// PENDING ≈ queued before send. SKIPPED_DUPLICATE supports Brevo idempotency prep.
+enum EmailDeliveryStatus {
+  PENDING
+  SENT
+  DELIVERED
+  BOUNCED
+  FAILED
+  SKIPPED_DUPLICATE
+}
+
+enum NotificationChannel {
+  EMAIL
+}
+
+enum NotificationOutboxStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+// ─── Auth / Users ────────────────────────────────────────────────────────────
+
+/// Staff identity only. No customer/patient accounts in the initial release.
+model User {
+  id              String    @id @default(cuid())
+  name            String?
+  /// Normalize to lowercase trim in application / seed before write.
+  email           String    @unique
+  passwordHash    String
+  role            Role      @default(DOCTOR)
+  isActive        Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  doctor             Doctor?
+  auditLogs          AuditLog[]           @relation("AuditLogActor")
+  authoredBlogPosts  BlogPost[]           @relation("BlogPostAuthor")
+  uploadedMedia      MediaAsset[]         @relation("MediaUploadedBy")
+  notificationOutbox NotificationOutbox[] @relation("OutboxActor")
+  initiatedRefunds   Refund[]             @relation("RefundInitiatedBy")
 
   @@index([role])
   @@index([isActive])
   @@map("users")
 }
 
-/// Minimal doctor profile sufficient for fee snapshots and payment flows.
-/// Display names / fees are schema fields — not hardcoded product claims.
-model Doctor {
-  id                   String   @id @default(cuid())
-  userId               String?  @unique
-  user                 User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  displayName          String
-  /// Current consultation fee in integer paise. Historical payments keep their own snapshot.
-  consultationFeePaise Int
-  isActive             Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+// ─── Doctors / Specialties ───────────────────────────────────────────────────
 
-  appointments Appointment[]
+model Specialty {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  name         String
+  description  String?
+  imageAssetId String?     @unique
+  imageAsset   MediaAsset? @relation("SpecialtyImage", fields: [imageAssetId], references: [id], onDelete: SetNull)
+  sortOrder    Int         @default(0)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  doctors Doctor[]
+
+  @@index([isActive, sortOrder])
+  @@map("specialties")
+}
+
+/// Soft-deactivate with isActive; never cascade-delete appointments/payments.
+model Doctor {
+  id                   String      @id @default(cuid())
+  userId               String      @unique
+  user                 User        @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  slug                 String      @unique
+  displayName          String
+  specialtyId          String?
+  specialty            Specialty?  @relation(fields: [specialtyId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  biography            String?
+  qualifications       String?
+  experienceYears      Int?
+  profileImageAssetId  String?     @unique
+  profileImageAsset    MediaAsset? @relation("DoctorProfileImage", fields: [profileImageAssetId], references: [id], onDelete: SetNull)
+  /// Current consultation fee in integer paise. Historical payments keep snapshots.
+  consultationFeePaise Int
+  isActive             Boolean     @default(true)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  appointments           Appointment[]
+  weeklyAvailabilities   WeeklyAvailability[]
+  availabilityExceptions AvailabilityException[]
 
   @@index([isActive])
+  @@index([specialtyId])
   @@map("doctors")
 }
 
-/// Minimal appointment model for booking + payment. Patient PII must never appear in public payment responses.
+// ─── Patients ────────────────────────────────────────────────────────────────
+
+/// Booking contacts only — no passwords / accounts.
+/// Phone policy: store digits as collected (prefer E.164 with country code when known).
+/// Do NOT enforce global unique phone — family members may share a number.
+model Patient {
+  id        String   @id @default(cuid())
+  fullName  String
+  phone     String
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+
+  @@index([phone])
+  @@index([email])
+  @@map("patients")
+}
+
+// ─── Availability ────────────────────────────────────────────────────────────
+
+/// Recurring weekly windows in clinic-local wall-clock (`HH:mm`). Multiple rows/day OK.
+model WeeklyAvailability {
+  id                  String    @id @default(cuid())
+  doctorId            String
+  doctor              Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  weekday             Weekday
+  startTimeLocal      String
+  endTimeLocal        String
+  slotDurationMinutes Int
+  breakStartLocal     String?
+  breakEndLocal       String?
+  effectiveFrom       DateTime?
+  effectiveUntil      DateTime?
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([doctorId, weekday])
+  @@index([doctorId, isActive])
+  @@map("weekly_availabilities")
+}
+
+model AvailabilityException {
+  id             String                    @id @default(cuid())
+  doctorId       String
+  doctor         Doctor                    @relation(fields: [doctorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  date           DateTime                  @db.Date
+  type           AvailabilityExceptionType
+  startTimeLocal String?
+  endTimeLocal   String?
+  reason         String?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@index([doctorId, date])
+  @@map("availability_exceptions")
+}
+
+// ─── Appointments ────────────────────────────────────────────────────────────
+
+/// Status changes over hard delete. Fee snapshot is immutable historically.
+/// Overlap of PENDING_PAYMENT|CONFIRMED ranges blocked by PostgreSQL EXCLUDE
+/// (see migration `appointments_doctor_time_excl`).
 model Appointment {
-  id               String            @id @default(cuid())
-  bookingReference String            @unique @default(cuid())
-  doctorId         String
-  doctor           Doctor            @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  patientName      String
-  patientEmail     String
-  patientPhone     String?
-  startsAt         DateTime
-  endsAt           DateTime?
-  status           AppointmentStatus @default(PENDING_PAYMENT)
+  id                 String            @id @default(cuid())
+  /// Public booking id (docs alias: publicReference).
+  bookingReference   String            @unique @default(cuid())
+  doctorId           String
+  doctor             Doctor            @relation(fields: [doctorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  patientId          String
+  patient            Patient           @relation(fields: [patientId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  /// Denormalized snapshot for receipts / Razorpay / Brevo (do not expose in public payment APIs).
+  patientName        String
+  patientEmail       String
+  patientPhone       String?
+  startsAt           DateTime
+  endsAt             DateTime
+  status             AppointmentStatus @default(PENDING_PAYMENT)
   /// Fee locked at booking time (paise). Never trust client-supplied amounts.
-  feeSnapshotPaise Int
-  currency         String            @default("INR")
+  feeSnapshotPaise   Int
+  currency           String            @default("INR")
+  reason             String?
+  cancellationReason String?
   /// Opaque ownership token for public booking flows (not a login).
-  accessToken      String            @unique @default(cuid())
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  accessToken        String            @unique @default(cuid())
+  cancelledAt        DateTime?
+  confirmedAt        DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
   payments Payment[]
 
+  @@index([doctorId, startsAt])
+  @@index([status, startsAt])
+  @@index([patientId])
   @@index([doctorId])
   @@index([status])
   @@index([startsAt])
   @@map("appointments")
 }
 
+// ─── Payments / Refunds / Webhooks ───────────────────────────────────────────
+
 model Payment {
-  id                 String          @id @default(cuid())
-  appointmentId      String
-  appointment        Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
-  attemptNumber      Int
-  idempotencyKey     String          @unique
-  provider           PaymentProvider @default(RAZORPAY)
-  providerOrderId    String?         @unique
-  providerPaymentId  String?         @unique
-  amountPaise        Int
-  currency           String          @default("INR")
+  id                  String          @id @default(cuid())
+  appointmentId       String
+  appointment         Appointment     @relation(fields: [appointmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  attemptNumber       Int
+  idempotencyKey      String          @unique
+  provider            PaymentProvider @default(RAZORPAY)
+  providerOrderId     String?         @unique
+  providerPaymentId   String?         @unique
+  amountPaise         Int
+  currency            String          @default("INR")
   /// Historical fee snapshot for this attempt (never mutated when doctor fee changes).
-  feeSnapshotPaise   Int
-  doctorFeePaise     Int
-  status             PaymentStatus   @default(CREATED)
-  failureReason      String?
-  paidAt             DateTime?
+  feeSnapshotPaise    Int
+  doctorFeePaise      Int
+  status              PaymentStatus   @default(CREATED)
+  failureCode         String?
+  failureReason       String?
+  signatureVerifiedAt DateTime?
+  paidAt              DateTime?
   /// Set to appointmentId while attempt is active (CREATED|ORDER_CREATED|PENDING); null when terminal.
-  /// Unique constraint enforces one active payment attempt per appointment at the DB level.
-  activeAppointmentId String?
-  needsReconciliation Boolean        @default(false)
+  /// Unique + partial unique index enforce one active payment attempt per appointment.
+  activeAppointmentId String?         @unique
+  needsReconciliation Boolean         @default(false)
   reconciliationNote  String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   refunds Refund[]
 
   @@unique([appointmentId, attemptNumber])
-  @@unique([activeAppointmentId])
   @@index([appointmentId, status])
+  @@index([appointmentId])
+  @@index([status, createdAt])
   @@index([status])
   @@index([createdAt])
   @@map("payments")
+}
+
+model Refund {
+  id                String       @id @default(cuid())
+  paymentId         String
+  payment           Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  providerRefundId  String?      @unique
+  idempotencyKey    String       @unique
+  amountPaise       Int
+  currency          String       @default("INR")
+  type              RefundType   @default(FULL)
+  status            RefundStatus @default(PENDING)
+  reason            String?
+  initiatedByUserId String?
+  initiatedByUser   User?        @relation("RefundInitiatedBy", fields: [initiatedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  processedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([paymentId])
+  @@index([status])
+  @@index([initiatedByUserId])
+  @@map("refunds")
 }
 
 model PaymentWebhookEvent {
@@ -151,11 +371,14 @@ model PaymentWebhookEvent {
   providerEventId  String                  @unique
   eventType        String
   processingStatus WebhookProcessingStatus @default(RECEIVED)
-  /// Verified webhook JSON. Do not log patient PII from this payload.
-  payload          Json
+  /// SHA-256 (or similar) of canonical payload for durable identity / forensics.
+  payloadHash      String?
+  /// Verified webhook JSON. Prefer hash-only long-term; avoid logging PII from payload.
+  payload          Json?
   receivedAt       DateTime                @default(now())
   processedAt      DateTime?
   failureReason    String?
+  retryCount       Int                     @default(0)
 
   @@index([eventType])
   @@index([processingStatus])
@@ -163,33 +386,174 @@ model PaymentWebhookEvent {
   @@map("payment_webhook_events")
 }
 
-model Refund {
-  id               String       @id @default(cuid())
-  paymentId        String
-  payment          Payment      @relation(fields: [paymentId], references: [id], onDelete: Restrict)
-  providerRefundId String?      @unique
-  idempotencyKey   String       @unique
-  amountPaise      Int
-  status           RefundStatus @default(PENDING)
-  reason           String?
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+// ─── Website CMS / Services / Blog ───────────────────────────────────────────
 
-  @@index([paymentId])
-  @@index([status])
-  @@map("refunds")
+model WebsiteSection {
+  id           String      @id @default(cuid())
+  /// Stable section key (docs alias: sectionKey).
+  key          String      @unique
+  title        String?
+  subtitle     String?
+  content      Json?
+  imageAssetId String?
+  imageAsset   MediaAsset? @relation("WebsiteSectionImage", fields: [imageAssetId], references: [id], onDelete: SetNull)
+  buttonText   String?
+  buttonLink   String?
+  sortOrder    Int         @default(0)
+  isPublished  Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([isPublished, sortOrder])
+  @@map("website_sections")
 }
 
-/// Append-only security/ops audit trail (separate from stdout app logs).
-/// Never store passwords, tokens, payment secrets, or medical/patient bodies.
-/// Readers must be ADMIN-only — doctors must not query this table via any API.
+model Service {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  name         String
+  description  String?
+  imageAssetId String?
+  imageAsset   MediaAsset? @relation("ServiceImage", fields: [imageAssetId], references: [id], onDelete: SetNull)
+  isPublished  Boolean     @default(false)
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([isPublished, sortOrder])
+  @@map("services")
+}
+
+model BlogPost {
+  id                String         @id @default(cuid())
+  slug              String         @unique
+  title             String
+  excerpt           String?
+  content           String
+  coverImageAssetId String?
+  coverImageAsset   MediaAsset?    @relation("BlogPostCover", fields: [coverImageAssetId], references: [id], onDelete: SetNull)
+  status            BlogPostStatus @default(DRAFT)
+  publishedAt       DateTime?
+  authorUserId      String?
+  authorUser        User?          @relation("BlogPostAuthor", fields: [authorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([authorUserId])
+  @@map("blog_posts")
+}
+
+// ─── Media ───────────────────────────────────────────────────────────────────
+
+model MediaAsset {
+  id               String            @id @default(cuid())
+  provider         MediaProvider     @default(CLOUDINARY)
+  /// Provider public_id / object key.
+  key              String
+  url              String
+  resourceType     MediaResourceType @default(IMAGE)
+  originalFileName String?
+  mimeType         String?
+  /// Byte size (docs alias: fileSize).
+  bytes            Int?
+  width            Int?
+  height           Int?
+  altText          String?
+  uploadedByUserId String?
+  uploadedByUser   User?             @relation("MediaUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  specialtyImage  Specialty?       @relation("SpecialtyImage")
+  doctorProfile   Doctor?          @relation("DoctorProfileImage")
+  websiteSections WebsiteSection[] @relation("WebsiteSectionImage")
+  services        Service[]        @relation("ServiceImage")
+  blogCovers      BlogPost[]       @relation("BlogPostCover")
+
+  @@unique([provider, key])
+  @@index([provider])
+  @@index([uploadedByUserId])
+  @@map("media_assets")
+}
+
+// ─── Email / Notification outbox ─────────────────────────────────────────────
+
+/// Delivery audit — do not store full HTML/text bodies.
+model EmailLog {
+  id                String              @id @default(cuid())
+  templateKind      String
+  recipientEmail    String
+  recipientName     String?
+  subject           String
+  status            EmailDeliveryStatus @default(PENDING)
+  provider          EmailProvider       @default(BREVO)
+  providerMessageId String?
+  /// Optional booking/payment/etc. correlation id.
+  referenceId       String?
+  idempotencyKey    String?             @unique
+  errorCode         String?
+  errorMessage      String?
+  metadata          Json?
+  sentAt            DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@index([templateKind])
+  @@index([recipientEmail])
+  @@index([referenceId])
+  @@map("email_logs")
+}
+
+/// Durable notification queue. No worker/scheduler in this persistence task.
+/// Dedupe strategy: unique `idempotencyKey` (recommended shape:
+/// `{channel}:{eventType}:{referenceId}:{recipient}`).
+model NotificationOutbox {
+  id                String                   @id @default(cuid())
+  channel           NotificationChannel      @default(EMAIL)
+  /// Logical event / template kind (docs alias: eventType).
+  eventType         String
+  referenceId       String?
+  recipientEmail    String
+  recipientName     String?
+  payload           Json
+  status            NotificationOutboxStatus @default(PENDING)
+  idempotencyKey    String                   @unique
+  attempts          Int                      @default(0)
+  /// Next eligible processing time (docs alias: nextRetryAt).
+  availableAt       DateTime                 @default(now())
+  lastError         String?
+  relatedEntityType String?
+  relatedEntityId   String?
+  actorUserId       String?
+  actorUser         User?                    @relation("OutboxActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  processedAt       DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([status, availableAt])
+  @@index([relatedEntityType, relatedEntityId])
+  @@index([channel, status])
+  @@index([eventType, referenceId, recipientEmail])
+  @@map("notification_outbox")
+}
+
+// ─── Audit / Clinic settings ─────────────────────────────────────────────────
+
+/// Append-only security/ops audit trail. Never store passwords, tokens, or patient bodies.
+/// Readers must be ADMIN-only at the API layer.
 model AuditLog {
   id          String   @id @default(cuid())
   actorUserId String?
+  actorUser   User?    @relation("AuditLogActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   action      String
   entityType  String
   entityId    String
+  beforeData  Json?
+  afterData   Json?
   metadata    Json?
+  ipAddress   String?
   createdAt   DateTime @default(now())
 
   @@index([actorUserId])
@@ -197,4 +561,54 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+/// Non-secret clinic configuration only. Never store API keys or credentials here.
+model ClinicSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("clinic_settings")
+}
+
+/// Postgres-backed auth rate limits (login). Survives process restarts; shared across instances.
+/// `key` is typically `login:ip:<ip>` or `login:email:<normalizedEmail>`.
+model AuthRateLimit {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  count       Int       @default(0)
+  windowStart DateTime
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([lockedUntil])
+  @@map("auth_rate_limits")
+}
+
+// ─── Admin CMS (single clinic, no site table) ────────────────────────────────
+
+/// One JSON document per singleton admin screen (company, footer, banners, FAQ, doctor page).
+model CmsSingleton {
+  key       String   @id
+  payload   Json
+  updatedAt DateTime @updatedAt
+
+  @@map("cms_singletons")
+}
+
+/// One JSON document per row in a collection admin screen (gallery, navbar, blog, and so on).
+model CmsItem {
+  id        String   @id @default(cuid())
+  kind      String
+  payload   Json
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, sortOrder])
+  @@map("cms_items")
 }

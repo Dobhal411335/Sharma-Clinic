@@ -1,194 +1,283 @@
-# Sharma Clinic --- Database Design (Proposed)
+# Sharma Clinic — Database Design
 
-PostgreSQL is recommended because appointments, doctors, availability,
-users, and payments are relational and require transactional
-consistency. Prisma is the ORM.
+PostgreSQL + Prisma 7 (`prisma.config.ts`, `@prisma/adapter-pg`) is the
+system of record for auth, doctors, availability, appointments, payments,
+CMS, media, notifications, and audit.
 
-This is a logical schema plan; implement the final Prisma schema only
-after confirming unresolved business rules.
+This document reflects the **implemented** schema in `prisma/schema.prisma`
+and migrations under `prisma/migrations/`.
 
-## 1. Core entities
+## 1. Conventions
 
-### User
+| Topic | Decision |
+| --- | --- |
+| Primary keys | `cuid()` text IDs (existing project convention). Docs originally proposed UUID; cuid is retained for compatibility with payment/audit migrations. |
+| Staff roles | Prisma enum `Role` = `ADMIN` \| `DOCTOR` (semantic UserRole; name preserved). No customer accounts. |
+| Money | Integer **paise** only; `currency` default `INR`. Never float. CHECK `amountPaise > 0` on Payment/Refund. |
+| Time | Persist UTC (`DateTime`). Availability wall-clock strings are local + `ClinicSetting` timezone. |
+| Soft lifecycle | Prefer `isActive` / status changes over deletes for doctors, services, appointments. |
+| Cascades | **Never** cascade-delete appointments, payments, refunds, or audits when a doctor/user is deactivated. Doctor→User is `Restrict`. Appointment/Payment/Refund FKs are `Restrict`. Availability rules cascade with doctor. |
+| Prisma 7 | Datasource URL lives in `prisma.config.ts`, not `schema.prisma`. Seed command configured there (`tsx prisma/seed.ts`). |
 
-Staff identity and authentication. - id (UUID) - name - email (unique,
-normalized) - passwordHash - role (ADMIN \| DOCTOR) - doctorId (nullable
-unique relation for doctor users, depending on chosen modeling) -
-isActive - lastLoginAt - createdAt, updatedAt
+## 2. Folder structure
 
-Do not create customer login users in the initial release.
+```text
+prisma/
+  schema.prisma
+  seed.ts
+  migrations/
+    migration_lock.toml
+    20261101134543_init_payments/migration.sql
+    20261101141500_add_audit_logs/migration.sql
+    20261101184500_complete_domain_schema/migration.sql
+docs/
+  DATABASE.md
+  ARCHITECTURE.md
+src/lib/db/
+  prisma.ts                  # Prisma 7 + pg adapter singleton
+  constraints.ts             # Named PG constraint identifiers / policies
+  constraints.test.ts
+  domain-invariants.test.ts
+  pg-constraints.integration.test.ts  # live DB; skipped without DATABASE_URL
+```
 
-### Doctor
+## 3. Modules and models
 
-Public profile and doctor-specific configuration. - id - slug (unique) -
-displayName - specialty - biography - qualifications - experienceYears
-(nullable; only if verified) - profileImageAssetId (nullable) -
-appointmentFeePaise - isActive - createdAt, updatedAt
+### Auth / Users — `User`
 
-Keep authentication identity in User and professional/public profile in
-Doctor.
+Staff identity only. Fields: `id`, `name`, `email` (unique; normalize lowercase
+trim in app/seed), `passwordHash`, `role`, `isActive`, `emailVerifiedAt?`,
+`lastLoginAt?`, timestamps.
 
-### Patient
+- Admin does **not** require a `Doctor` row.
+- Doctor role users map 1:1 to `Doctor` via `Doctor.userId`.
 
-Minimal contact details captured for bookings; no login. - id -
-fullName - phone - email (nullable) - createdAt, updatedAt
+### Doctors / Specialties — `Specialty`, `Doctor`
 
-Consider privacy and retention requirements before adding further
-fields.
+- `Specialty`: `slug`, `name`, `description`, optional `imageAssetId` → `MediaAsset`,
+  `sortOrder`, `isActive`.
+- `Doctor`: required `userId` (1:1), unique `slug`, optional `specialtyId`,
+  profile fields, optional `profileImageAssetId` → `MediaAsset`,
+  `consultationFeePaise` (current fee; history uses snapshots), `isActive`.
 
-### WeeklyAvailability
+### Patients — `Patient`
 
-Recurring schedule. - id - doctorId - weekday (defined enum or 0--6
-convention) - startTimeLocal - endTimeLocal - slotDurationMinutes -
-optional breakStartLocal / breakEndLocal - effectiveFrom /
-effectiveUntil (optional) - createdAt, updatedAt
+Minimal booking contacts: `fullName`, `phone`, `email?`. No login.
 
-### AvailabilityException
+**Phone normalization policy:** store the phone as collected; prefer E.164 with
+country code when the booking UI knows it. Do **not** enforce a global unique
+constraint on phone — household members may share a number. Application code may
+normalize whitespace/punctuation for lookup without inventing a clinic-wide unique
+identity.
 
-Date-specific leave or override. - id - doctorId - date - type
-(UNAVAILABLE \| EXTRA_HOURS \| OVERRIDE) - startTimeLocal / endTimeLocal
-(nullable for full-day leave) - reason (private, optional) - createdAt,
-updatedAt
+### Appointments — `Appointment`
 
-### Appointment
+- `bookingReference` (unique; docs name “publicReference”)
+- `doctorId`, `patientId`
+- Denormalized booking snapshot: `patientName`, `patientEmail`, `patientPhone?`
+  (kept for receipts/history and Razorpay/Brevo compatibility)
+- `startsAt`, `endsAt` (required UTC), `status`, `feeSnapshotPaise`, `currency`
+- `reason?`, `cancellationReason?`, `accessToken`, `cancelledAt?`,
+  `confirmedAt?`, `completedAt?`
 
--   id
--   publicReference (unique, non-sequential)
--   doctorId
--   patientId
--   startsAtUtc
--   endsAtUtc
--   status
--   feeSnapshotPaise
--   currency (INR)
--   reason (optional, access-restricted)
--   createdAt, updatedAt
--   cancelledAt (nullable)
+**Overlap prevention (PostgreSQL):**
 
-The fee snapshot preserves the price agreed at booking time.
+```sql
+EXCLUDE USING gist (
+  "doctorId" WITH =,
+  tsrange("startsAt", "endsAt", '[)') WITH &&
+)
+WHERE ("status" IN ('PENDING_PAYMENT', 'CONFIRMED'))
+```
 
-### Payment
+Uses `tsrange` because Prisma `DateTime` maps to `TIMESTAMP(3)` (without time
+zone); values are still treated as UTC in application code. Requires
+`btree_gist`. Cancelled / expired / completed / no-show rows do not block the
+range. Application code must still check availability; this is the concurrency
+backstop.
 
-One appointment may have multiple payment attempts. - id -
-appointmentId - provider (RAZORPAY) - providerOrderId (unique where
-present) - providerPaymentId (unique where present) - amountPaise -
-currency - status - signatureVerifiedAt (nullable) - paidAt (nullable) -
-refundedAmountPaise (default 0) - createdAt, updatedAt
+### Availability — `WeeklyAvailability`, `AvailabilityException`
 
-### PaymentWebhookEvent
+- Weekly: `weekday`, local `startTimeLocal` / `endTimeLocal` (`HH:mm`),
+  `slotDurationMinutes`, optional break windows, optional effective range.
+- Exceptions: `date`, `type` (`UNAVAILABLE` \| `EXTRA_HOURS` \| `OVERRIDE`),
+  optional local times + private `reason`.
 
--   id
--   providerEventId (unique)
--   eventType
--   payloadHash or safely retained minimal payload
--   processingStatus
--   receivedAt
--   processedAt (nullable)
--   failureReason (sanitized, nullable)
+Deleting a doctor cascades availability rules only (not appointments).
 
-Avoid retaining unnecessary sensitive webhook payload data.
+### Payments — `Payment`
 
-### WebsiteSection
+Aligned with existing Razorpay services:
 
--   id
--   key (unique)
--   title/content fields or structured JSON validated by a schema
--   imageAssetId (nullable)
--   sortOrder
--   isPublished
--   updatedAt
+- `attemptNumber`, `idempotencyKey` (unique)
+- `provider` / `providerOrderId` / `providerPaymentId`
+- `amountPaise`, `feeSnapshotPaise`, `doctorFeePaise`
+- `failureCode?`, `failureReason?`, `signatureVerifiedAt?`
+- `activeAppointmentId` — set while attempt is active; **unique** so only one
+  active attempt per appointment (PostgreSQL treats multiple NULLs as distinct;
+  migration also adds an explicit partial unique index)
+- Statuses: `CREATED` → `ORDER_CREATED` → `PENDING` → `PAID` →
+  `PARTIALLY_REFUNDED` / `REFUNDED`, plus `FAILED` / `EXPIRED`
 
-Prefer typed fields or versioned validated JSON over arbitrary
-unvalidated JSON.
+Never delete payment rows to “fix” history.
 
-### Service
+### Refunds — `Refund`
 
--   id
--   slug (unique)
--   name
--   description
--   imageAssetId (nullable)
--   isPublished
--   sortOrder
+`amountPaise` (> 0 CHECK), `currency`, `type` (`FULL` \| `PARTIAL`),
+`idempotencyKey`, `providerRefundId?`, `status`
+(`CREATED` \| `PENDING` \| `PROCESSED` \| `FAILED`), optional
+`initiatedByUserId`, `processedAt?`. FK `onDelete: Restrict`.
 
-### BlogPost (optional)
+**Refund cap:** application transactions must keep
+`sum(PENDING|PROCESSED amounts) ≤ payment.amountPaise`. Not implemented as a
+DB trigger (would couple refund status semantics); documented in
+`src/lib/db/constraints.ts` (`REFUND_CAP_POLICY`).
 
--   id
--   slug (unique)
--   title
--   excerpt
--   body
--   coverImageAssetId
--   status (DRAFT \| PUBLISHED)
--   publishedAt
--   authorUserId
+### Webhooks — `PaymentWebhookEvent`
 
-Only include if blog management is approved for the initial scope.
+- Unique `providerEventId` (idempotent inbox)
+- `payloadHash` (SHA-256 preferred durable identity)
+- Optional `payload` JSON for ops (avoid logging PII from it)
+- `retryCount`, statuses include `PROCESSING`
 
-### MediaAsset
+### Website CMS / Services / Blog
 
--   id
--   provider (CLOUDINARY)
--   publicId
--   secureUrl
--   resourceType
--   altText
--   createdAt
+- `WebsiteSection` — unique `key` (alias sectionKey), title/subtitle, flexible
+  `content` JSON, optional image + CTA fields
+- `Service` — unique `slug`, publish flags
+- `BlogPost` — `content` body, draft/published/archived, optional author + cover
 
-### AuditLog
+### Media — `MediaAsset`
 
--   id
--   actorUserId (nullable for system/webhook)
--   action
--   entityType
--   entityId
--   metadata (sanitized)
--   createdAt
+Cloudinary-oriented: `provider`, `key` (= public_id), `url`, `resourceType`,
+`originalFileName?`, `bytes` (alias fileSize), optional dimensions/mime/alt,
+`uploadedByUserId?`. Unique `(provider, key)`.
 
-## 2. Relationships
+### Email / Outbox
 
--   Doctor has one or more weekly availability rules.
--   Doctor has zero or more availability exceptions.
--   Doctor has many appointments.
--   Patient has many appointments.
--   Appointment has one or more payment attempts.
--   User with DOCTOR role maps to exactly one Doctor profile.
--   Admin user does not require a Doctor profile.
+- `EmailLog` — delivery audit without full bodies; unique optional
+  `idempotencyKey`; `referenceId?` for correlation
+- `NotificationOutbox` — durable queue; **no scheduler** in this task.
+  Dedupe via unique `idempotencyKey` (recommended:
+  `{channel}:{eventType}:{referenceId}:{recipient}`). Supporting index on
+  `(eventType, referenceId, recipientEmail)`.
 
-## 3. Constraints and indexes
+### Audit — `AuditLog`
 
--   Unique normalized User.email.
--   Unique Doctor.slug.
--   Unique Appointment.publicReference.
--   Unique provider order/payment IDs when non-null.
--   Unique PaymentWebhookEvent.providerEventId.
--   Index appointments by `(doctorId, startsAtUtc)`,
-    `(status, startsAtUtc)`, and `patientId`.
--   Index payments by `(status, createdAt)` and appointmentId.
--   Index availability by doctorId and weekday/date.
--   Add a database-level mechanism to prevent overlapping active
-    appointments for the same doctor/time. Choose the exact
-    constraint/reservation model after deciding slot granularity and
-    PostgreSQL extension/constraint strategy.
--   Use transactions for booking reservation and payment state
-    transitions.
+Append-only: `actorUserId?`, `action`, `entityType`, `entityId`,
+`beforeData?`, `afterData?`, `metadata?`, `ipAddress?`, `createdAt`.
+ADMIN-only readers at the API layer. `logAuditEvent` persists these fields.
 
-## 4. Money and time
+### Clinic settings — `ClinicSetting`
 
--   Store INR in integer paise (e.g. ₹750 = 75000 paise).
--   Never use float/double for currency.
--   Persist timestamps in UTC.
--   Store recurring wall-clock availability as local time plus the
-    clinic timezone setting.
--   Convert generated appointment slots to UTC before persistence.
+Non-secret key/value JSON only (timezone, currency labels, booking TTL
+placeholders). **Never** store API secrets here.
 
-## 5. Data lifecycle
+## 4. Relationships (summary)
 
--   Prefer deactivation/soft deletion for doctors and services
-    referenced by history.
--   Never delete payment ledger records to correct a mistake; create
-    refund/adjustment records or audited corrections.
--   Define retention and deletion policy for patient contact details
-    before production.
--   Keep audit logs for admin changes to prices, doctor access,
-    appointment status, and content publication.
+```
+User 1 ── 0..1 Doctor
+Specialty 1 ── * Doctor
+Doctor 1 ── * Appointment / WeeklyAvailability / AvailabilityException
+Patient 1 ── * Appointment
+Appointment 1 ── * Payment
+Payment 1 ── * Refund
+User 1 ── * AuditLog / BlogPost / NotificationOutbox / MediaAsset / Refund(initiated)
+MediaAsset 1 ── * WebsiteSection / Service / BlogPost / Doctor(profile) / Specialty(image)
+```
+
+## 5. Enums
+
+| Enum | Values |
+| --- | --- |
+| `Role` | `ADMIN`, `DOCTOR` |
+| `AppointmentStatus` | `PENDING_PAYMENT`, `CONFIRMED`, `CANCELLED`, `COMPLETED`, `NO_SHOW`, `EXPIRED` |
+| `PaymentStatus` | `CREATED`, `ORDER_CREATED`, `PENDING`, `PAID`, `FAILED`, `EXPIRED`, `PARTIALLY_REFUNDED`, `REFUNDED` |
+| `PaymentProvider` | `RAZORPAY` |
+| `WebhookProcessingStatus` | `RECEIVED`, `PROCESSING`, `PROCESSED`, `IGNORED`, `FAILED` |
+| `RefundStatus` | `CREATED`, `PENDING`, `PROCESSED`, `FAILED` |
+| `RefundType` | `FULL`, `PARTIAL` |
+| `Weekday` | `MONDAY`…`SUNDAY` |
+| `AvailabilityExceptionType` | `UNAVAILABLE`, `EXTRA_HOURS`, `OVERRIDE` |
+| `MediaProvider` | `CLOUDINARY` |
+| `MediaResourceType` | `IMAGE`, `RAW`, `VIDEO`, `AUTO` |
+| `BlogPostStatus` | `DRAFT`, `PUBLISHED`, `ARCHIVED` |
+| `EmailProvider` | `BREVO` |
+| `EmailDeliveryStatus` | `PENDING`, `SENT`, `DELIVERED`, `BOUNCED`, `FAILED`, `SKIPPED_DUPLICATE` |
+| `NotificationChannel` | `EMAIL` |
+| `NotificationOutboxStatus` | `PENDING`, `PROCESSING`, `SENT`, `FAILED`, `CANCELLED` |
+
+## 6. Indexes and constraints (high level)
+
+- Unique: `User.email`, `Doctor.slug` / `userId`, `Specialty.slug`,
+  `Appointment.bookingReference` / `accessToken`, payment provider IDs,
+  payment `idempotencyKey`, webhook `providerEventId`, outbox/email
+  idempotency keys, `ClinicSetting.key`, `MediaAsset(provider,key)`.
+- Appointment indexes: `(doctorId, startsAt)`, `(status, startsAt)`, `patientId`.
+- Payment indexes: `(status, createdAt)`, `appointmentId`, active attempt unique.
+- Availability indexes: `(doctorId, weekday)`, `(doctorId, date)`.
+- PostgreSQL-specific: `appointments_doctor_time_excl`,
+  `payments_one_active_attempt_per_appointment`, positive amount CHECKs.
+
+## 7. Migrations
+
+| Migration | Purpose |
+| --- | --- |
+| `20261101134543_init_payments` | Users, doctors, appointments, payments, webhooks, refunds, audit (baseline) |
+| `20261101141500_add_audit_logs` | Idempotent ensure audit table (audit already in init) |
+| `20261101184500_complete_domain_schema` | Full domain: specialties, patients, availability, CMS, media, email/outbox, settings, enum extensions, exclusion + partial unique + money CHECKs |
+| `20261101200000_add_auth_rate_limits` | Additive `auth_rate_limits` for Postgres-backed login throttling |
+
+## 8. Seed
+
+```bash
+npm run prisma:seed
+# or
+npx prisma db seed
+```
+
+Requires `DATABASE_URL`. Initial admin from `INITIAL_ADMIN_EMAIL` +
+`INITIAL_ADMIN_PASSWORD` (Argon2id; min length 12). `SEED_ADMIN_*` aliases
+still accepted. Existing admin password is **never** overwritten on re-seed.
+Demo specialties/doctors only when `NODE_ENV=development` **or**
+`SEED_DEMO_DATA=true`. Never auto-seeds demo in production unless
+`SEED_DEMO_DATA` is explicitly `true`. Idempotent upserts. Never hardcodes
+passwords.
+
+## 9. Commands
+
+```bash
+npx prisma format
+npx prisma validate
+npx prisma generate
+npx prisma migrate deploy    # production / CI
+npx prisma migrate dev       # local interactive
+npm run prisma:seed
+```
+
+## 10. Deviations from earlier proposal docs
+
+- PK strategy: **cuid**, not UUID.
+- Role enum name: **`Role`**, not `UserRole`.
+- Appointment public id field: **`bookingReference`** (not `publicReference`).
+- Doctor fee field: **`consultationFeePaise`** (not `appointmentFeePaise`).
+- Appointment times: **`startsAt` / `endsAt`** (not `startsAtUtc` / `endsAtUtc`).
+- Payment retains Razorpay-specific **`ORDER_CREATED`** and **`activeAppointmentId`**.
+- Appointments keep denormalized patient snapshot columns **plus** `patientId`.
+- Website section key field: **`key`** (not `sectionKey`).
+- Media size field: **`bytes`** (not `fileSize`).
+- Outbox retry timestamp: **`availableAt`** (not `nextRetryAt`); event field
+  **`eventType`**.
+- Email queued state: **`PENDING`** (covers “queued”); plus DELIVERED/BOUNCED.
+- Exclusion uses **`tsrange`** (Prisma `TIMESTAMP(3)`), not `tstzrange`.
+
+## 11. Open business decisions / limitations
+
+- Production clinic timezone confirmation (default placeholder `Asia/Kolkata`).
+- Unpaid reservation TTL and EXPIRED transition job.
+- Default slot duration / buffers (migration backfill used 30 minutes only when `endsAt` was null).
+- Whether pay-at-clinic is allowed without `PENDING_PAYMENT`.
+- Patient PII retention / deletion policy.
+- Whether webhook `payload` JSON should be dropped in favor of hash-only in production.
+- Refund total-cap trigger vs application-only enforcement (currently app + docs).
+- Live exclusion/partial-index tests require `DATABASE_URL`; skipped when unset.

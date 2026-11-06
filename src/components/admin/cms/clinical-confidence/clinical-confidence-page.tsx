@@ -1,0 +1,14 @@
+"use client";
+import { useCallback, useEffect, useState } from "react";
+import { Save } from "lucide-react";
+import { AdminAppShell } from "@/components/layout/admin-app-shell";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { showError, showSuccess } from "@/lib/toast";
+import { ApiError } from "@/services/api/errors";
+import { fetchClinicalConfidence, upsertClinicalConfidence } from "@/services/api/clinical-confidence";
+import { emptyForm, dtoToForm } from "@/components/admin/cms/clinical-confidence/clinical-confidence-form-utils";
+import { ClinicalConfidenceForm } from "@/components/admin/cms/clinical-confidence/clinical-confidence-form";
+import { toClinicalConfidencePayload, validateClinicalConfidence, type ClinicalConfidenceErrors } from "@/schemas/clinical-confidence-schema";
+import type { ClinicalConfidenceFormValues } from "@/types/admin/clinical-confidence";
+export function ClinicalConfidencePage() { const [values, setValues] = useState<ClinicalConfidenceFormValues>(emptyForm); const [errors, setErrors] = useState<ClinicalConfidenceErrors>({}); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [loadError, setLoadError] = useState<string | null>(null); const load = useCallback(async () => { setLoading(true); try { setValues(dtoToForm(await fetchClinicalConfidence())); } catch (error) { const message = error instanceof ApiError ? error.message : "Failed to load clinical confidence banner"; setLoadError(message); showError(message); } finally { setLoading(false); } }, []); useEffect(() => { void load(); }, [load]); const submit = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); const result = validateClinicalConfidence(values); if (!result.success) { setErrors(result.errors); showError(Object.values(result.errors)[0] || "Please complete the form"); return; } setErrors({}); setSaving(true); try { setValues(dtoToForm(await upsertClinicalConfidence(toClinicalConfidencePayload(result.data)))); showSuccess("Clinical confidence banner saved"); } catch (error) { showError(error instanceof ApiError ? error.message : "Failed to save clinical confidence banner"); } finally { setSaving(false); } }; return <AdminAppShell><div className="mx-auto w-full max-w-6xl space-y-6">{loadError ? <Alert variant="destructive"><AlertTitle>Could not load banner</AlertTitle><AlertDescription>{loadError}</AlertDescription></Alert> : null}{!loading ? <ClinicalConfidenceForm values={values} errors={errors} onChange={setValues} onSubmit={submit} /> : <div className="rounded-lg border p-8 text-sm text-muted-foreground">Loading...</div>}<div className="flex justify-end"><Button type="submit" form="clinical-confidence-form" disabled={loading || saving || Boolean(loadError)}><Save className="mr-2 size-4" />{saving ? "Saving..." : "Save banner"}</Button></div></div></AdminAppShell>; }

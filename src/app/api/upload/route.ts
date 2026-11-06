@@ -1,8 +1,6 @@
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
-import { authOptions } from "@/lib/auth/config";
-import { hasRole } from "@/lib/auth/authorization";
+import { requireAdmin } from "@/lib/auth/guards";
 import {
   CloudinaryError,
   deleteSingleImage,
@@ -10,6 +8,7 @@ import {
   uploadMultipleImages,
   uploadSingleImage,
   uploadSinglePdf,
+  uploadSingleVideo,
   type DeleteResourceType,
   type UploadOperationType,
 } from "@/lib/cloudinary";
@@ -39,6 +38,7 @@ const UPLOAD_TYPES: readonly UploadOperationType[] = [
   "single-image",
   "multiple-images",
   "single-pdf",
+  "single-video",
 ] as const;
 
 const DELETE_TYPES: readonly DeleteResourceType[] = ["image", "pdf"] as const;
@@ -84,29 +84,25 @@ function jsonSuccess<T>(data: T, status = 200): NextResponse<ApiSuccessBody<T>> 
   );
 }
 
-async function requireAdmin(): Promise<
+async function requireUploadAdmin(): Promise<
   | { ok: true }
   | { ok: false; response: NextResponse<ApiErrorBody> }
 > {
-  // Fail-closed: until Auth.js credentials/session wiring is complete,
-  // missing or non-ADMIN sessions are rejected.
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
+  const authResult = await requireAdmin();
+  if (!authResult.ok) {
     return {
       ok: false,
-      response: jsonError(401, "UNAUTHORIZED", "Authentication required."),
+      response: jsonError(
+        authResult.response.status,
+        authResult.response.status === 401 ? "UNAUTHORIZED" : "FORBIDDEN",
+        authResult.response.status === 401
+          ? "Authentication required."
+          : "Admin access required.",
+      ),
     };
   }
 
-  if (!hasRole(session, "ADMIN")) {
-    return {
-      ok: false,
-      response: jsonError(403, "FORBIDDEN", "Admin access required."),
-    };
-  }
-
-  setRequestUser(session.user.id, session.user.role);
+  setRequestUser(authResult.user.id, authResult.user.role);
   return { ok: true };
 }
 
@@ -143,7 +139,7 @@ function handleCloudinaryError(error: unknown): NextResponse<ApiErrorBody> {
 }
 
 async function postHandler(request: Request): Promise<Response> {
-  const auth = await requireAdmin();
+  const auth = await requireUploadAdmin();
   if (!auth.ok) {
     return auth.response;
   }
@@ -160,7 +156,7 @@ async function postHandler(request: Request): Promise<Response> {
     return jsonError(
       400,
       "INVALID_UPLOAD_TYPE",
-      "type must be one of: single-image, multiple-images, single-pdf.",
+      "type must be one of: single-image, multiple-images, single-pdf, single-video.",
     );
   }
 
@@ -206,6 +202,16 @@ async function postHandler(request: Request): Promise<Response> {
         const data = await uploadSinglePdf(file);
         return jsonSuccess(data, 201);
       }
+
+      case "single-video": {
+        const file = getSingleFile(formData, "file");
+        if (!file) {
+          return jsonError(400, "FILE_REQUIRED", "file is required.");
+        }
+
+        const data = await uploadSingleVideo(file);
+        return jsonSuccess(data, 201);
+      }
     }
   } catch (error) {
     return handleCloudinaryError(error);
@@ -213,7 +219,7 @@ async function postHandler(request: Request): Promise<Response> {
 }
 
 async function deleteHandler(request: Request): Promise<Response> {
-  const auth = await requireAdmin();
+  const auth = await requireUploadAdmin();
   if (!auth.ok) {
     return auth.response;
   }
