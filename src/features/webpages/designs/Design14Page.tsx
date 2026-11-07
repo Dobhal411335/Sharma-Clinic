@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { HtmlBlock, isFilledText } from "@/features/webpages/webpage-shared";
+import { isFilledText } from "@/features/webpages/webpage-shared";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
 import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
 
 const Mini = ({ children, light = false }: { children?: string; light?: boolean }) =>
@@ -58,19 +59,19 @@ export function Design14Page({ data }: { data: StorefrontWebpage }) {
         </div>
         <div className="relative max-w-4xl">
           <Mini light>{data.design14HeroMiniHeading}</Mini>
-          <h1 className="mt-6 max-w-4xl text-5xl font-medium leading-[.92] tracking-[-.06em] sm:text-7xl lg:text-[clamp(4rem,7vw,5.4rem)]">
+          <h1 className="mt-6 max-w-4xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design14HeroMainHeading}
           </h1>
           <Copy html={data.design14HeroDescription} light className="mt-8 max-w-xl text-base" />
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[9.5%]">
+      <section className="px-6 md:py-20 py-10 sm:px-10 md:px-16 lg:px-[9.5%]">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-10 md:grid-cols-[1fr_.4fr] md:items-end">
             <div>
               <Mini>{data.design14SectorsMiniHeading}</Mini>
-              <h2 className="mt-5 max-w-3xl text-5xl font-semibold leading-[.94] tracking-[-.055em] sm:text-7xl">
+              <h2 className="mt-5 max-w-3xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
                 {data.design14SectorsMainHeading}
               </h2>
             </div>
@@ -94,7 +95,7 @@ export function Design14Page({ data }: { data: StorefrontWebpage }) {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#071d25]/95 via-[#071d25]/25 to-transparent transition duration-500 group-hover:from-[#071d25]" />
                 <div className="pointer-events-none absolute inset-3 rounded-[16px] border border-white/45 transition duration-500 group-hover:border-white/75" />
                 <div className="absolute inset-x-6 bottom-7 z-10">
-                  <span className="mb-3 inline-flex size-8 items-center justify-center rounded-full border border-white/45 bg-black/10 text-[9px] font-bold backdrop-blur-sm">
+                  <span className="mb-3 inline-flex size-11 items-center justify-center rounded-full border border-white/45 bg-black/10 text-[15px] font-bold backdrop-blur-sm">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <h3 className="text-2xl font-semibold leading-tight tracking-[-.035em]">
@@ -107,16 +108,15 @@ export function Design14Page({ data }: { data: StorefrontWebpage }) {
           </div>
         </div>
       </section>
-      <section className="px-6 py-24 text-black sm:px-10 md:px-16 lg:px-[9.5%]">
+      <section className="px-6 md:py-20 py-10 text-black sm:px-10 md:px-16 lg:px-[9.5%]">
         <div className="mx-auto grid max-w-7xl gap-14 md:grid-cols-[.9fr_1.1fr] md:items-center">
           <div>
             <Mini light>{data.design14PerspectiveMiniHeading}</Mini>
-            <h2 className="mt-5 max-w-xl text-5xl font-medium leading-[.94] tracking-[-.025em] sm:text-7xl">
+            <h2 className="mt-5 max-w-xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
               {data.design14PerspectiveMainHeading}
             </h2>
             <Copy
               html={data.design14PerspectiveDescription}
-              light
               className="mt-8 max-w-md text-sm"
             />
           </div>
@@ -127,16 +127,16 @@ export function Design14Page({ data }: { data: StorefrontWebpage }) {
                 className="min-h-[135px] border-b border-r border-white/10 p-6 last:border-b-0"
               >
                 <p className="text-5xl font-semibold text-[#e6ad8b]">{card.miniHeading}</p>
-                <Copy html={card.miniDescription} light className="mt-3 text-md" />
+                <Copy html={card.miniDescription} className="mt-3 text-md" />
               </div>
             ))}
           </div>
         </div>
       </section>
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[9.5%]">
+      <section className="px-6 md:py-20 py-10 sm:px-10 md:px-16 lg:px-[9.5%]">
         <div className="mx-auto max-w-7xl">
           <Mini>{data.design14QuestionsMiniHeading}</Mini>
-          <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[.94] tracking-[-.055em] sm:text-7xl">
+          <h2 className="mt-5 max-w-3xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design14QuestionsMainHeading}
           </h2>
           <Copy html={data.design14QuestionsDescription} className="mt-6 max-w-xl text-sm" />
@@ -152,7 +152,7 @@ export function Design14Page({ data }: { data: StorefrontWebpage }) {
                   className="pointer-events-none absolute -bottom-8 -right-10 h-32 w-40 opacity-90 transition duration-500 group-hover:scale-110"
                 >
                   <circle cx="132" cy="128" r="92" fill="#f6f2ee" />
-                  <circle cx="132" cy="128" r="68" fill="none" stroke="#efd8ca" strokeWidth="1.2" />
+                  <circle cx="132" cy="128" r="68" fill="#fefefc" stroke="#efd8ca" strokeWidth="1.2" />
                 </svg>
                 <h3 className="relative max-w-[15rem] text-md font-semibold">
                   {card.miniHeading}
@@ -163,19 +163,19 @@ export function Design14Page({ data }: { data: StorefrontWebpage }) {
           </div>
         </div>
       </section>
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[9.5%]">
+      <section className="px-6 md:py-20 py-10 sm:px-10 md:px-16 lg:px-[9.5%]">
         <div className="mx-auto max-w-6xl rounded-[20px] bg-[#a85131] px-7 py-12 text-white shadow-[0_18px_35px_rgba(101,46,26,.18)] sm:px-12">
           <div className="text-5xl text-white">“</div>
           <Copy html={data.design14Quote} light className="max-w-4xl text-xl sm:text-2xl" />
-          <p className="mt-6 text-[10px] uppercase tracking-[.16em] text-white">
+          <p className="text-[10px] uppercase tracking-[.16em] text-white">
             {data.design14QuoteDesignation}
           </p>
         </div>
       </section>
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[9.5%]">
+        <section className="px-6 md:py-20 py-10 sm:px-10 md:px-16 lg:px-[9.5%]">
         <div className="mx-auto max-w-7xl">
           <Mini>{data.design14ExploreMiniHeading}</Mini>
-          <h2 className="mt-5 max-w-2xl text-5xl font-medium leading-[.94] tracking-[-.055em] sm:text-7xl">
+          <h2 className="mt-5 max-w-2xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design14ExploreMainHeading}
           </h2>
           <div className="mt-14 grid gap-3 md:grid-cols-3">

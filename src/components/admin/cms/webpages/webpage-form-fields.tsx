@@ -266,19 +266,30 @@ export function RichHtmlField({
   value,
   onChange,
   onUploadImage,
+  webpageId,
 }: {
   label: string;
   value: string;
   onChange: (html: string) => void;
   onUploadImage?: (file: File) => Promise<string>;
+  webpageId?: string;
+  showPreview?: boolean;
 }) {
+  const handleUpload =
+    onUploadImage ||
+    (webpageId
+      ? async (file: File) => {
+          const uploaded = await uploadWebpageImage(file, webpageId);
+          return uploaded.url;
+        }
+      : undefined);
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
       <RichTextEditor
         value={value}
         onChange={onChange}
-        onUploadImage={onUploadImage}
+        onUploadImage={handleUpload}
         minHeightClassName="min-h-[140px]"
       />
     </div>

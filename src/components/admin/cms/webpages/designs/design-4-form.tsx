@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Plus, Settings, Share2, Trash2,Sparkles,AlignLeft } from "lucide-react";
+import { Info, Plus, Settings, Share2, Trash2 } from "lucide-react";
 
 import {
   Button,
@@ -14,12 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
   SeoKeywordsField,
-  Textarea,
   RichHtmlField,
 } from "@/components/admin/cms/webpages/webpage-form-fields";
 import { ClassicArticleSections } from "@/components/admin/cms/webpages/designs/classic-article-sections";
-import { createEmptyParagraphSection, emptyImage } from "@/components/admin/cms/webpages/webpage-form-state";
-import { uploadWebpageImage } from "@/services/api/webpages";
+import { emptyImage } from "@/components/admin/cms/webpages/webpage-form-state";
 import type { WebpageEditFormValues } from "@/types/admin/webpages";
 
 /**
@@ -31,15 +29,10 @@ export function Design4Form({
   values,
   setValues,
 }: {
-  
   webpageId: string;
   values: WebpageEditFormValues;
   setValues: React.Dispatch<React.SetStateAction<WebpageEditFormValues>>;
 }) {
-  const uploadInline = async (file: File) => {
-    const uploaded = await uploadWebpageImage(file, webpageId);
-    return uploaded.url;
-  };
   const patch = <K extends keyof WebpageEditFormValues>(
     key: K,
     value: WebpageEditFormValues[K],
@@ -163,20 +156,19 @@ export function Design4Form({
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Notice description</Label>
-                <Textarea
-                  value={row.description}
-                  onChange={(e) => {
-                    const next = [...values.notices];
-                    next[index] = {
-                      ...next[index],
-                      description: e.target.value,
-                    };
-                    patch("notices", next);
-                  }}
-                />
-              </div>
+              <RichHtmlField
+                webpageId={webpageId}
+                label="Notice description"
+                value={row.description}
+                onChange={(html) => {
+                  const next = [...values.notices];
+                  next[index] = {
+                    ...next[index],
+                    description: html,
+                  };
+                  patch("notices", next);
+                }}
+              />
             </div>
           ))}
         </div>
@@ -331,14 +323,10 @@ export function Design4Form({
         </div>
       </SectionCard>
 
-      {/* Reuse highlights / paragraphs / table / blockquote from classic (variant design3 hides sidebar) */}
       <ClassicArticleSections
-       
         webpageId={webpageId}
         values={values}
         setValues={setValues}
-        variant="design3"
-        includePageSettings={false}
       />
     </>
   );

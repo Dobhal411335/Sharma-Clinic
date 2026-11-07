@@ -7,6 +7,7 @@ import {
   ImageAssetField,
   Input,
   Label,
+  RichHtmlField,
   SectionCard,
   SeoKeywordsField,
   Textarea,
@@ -94,13 +95,12 @@ export function Design6Form({
             onChange={(e) => patch("design6MainHeading", e.target.value)}
           />
         </div>
-        <div className="space-y-2">
-          <Label>Sub heading / paragraph description</Label>
-          <Textarea
-            value={values.design6SubHeading}
-            onChange={(e) => patch("design6SubHeading", e.target.value)}
-          />
-        </div>
+        <RichHtmlField
+          webpageId={webpageId}
+          label="Sub heading / paragraph description"
+          value={values.design6SubHeading}
+          onChange={(html) => patch("design6SubHeading", html)}
+        />
         <div className="space-y-2">
           <Label>Author attribution</Label>
           <Input

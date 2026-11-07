@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { HtmlBlock, isFilledText } from "@/features/webpages/webpage-shared";
+import { isFilledText } from "@/features/webpages/webpage-shared";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
 import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
 
 const Mini = ({ children, light = false }: { children?: string; light?: boolean }) =>
@@ -60,11 +61,11 @@ export function Design12Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16">
         <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-[.9fr_1.1fr] md:items-center">
           <div>
             <Mini>{data.design12ChallengeMiniHeading}</Mini>
-            <h2 className="mt-5 max-w-xl text-5xl font-semibold leading-[.94] tracking-[-.05em] sm:text-7xl">
+            <h2 className="mt-5 max-w-xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-7xl">
               {data.design12ChallengeMainHeading}
             </h2>
             <Copy html={data.design12ChallengeDescription} className="mt-8 max-w-md text-md" />
@@ -96,10 +97,10 @@ export function Design12Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16">
         <div className="mx-auto max-w-7xl">
           <Mini>{data.design12HelpMiniHeading}</Mini>
-          <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[.94] tracking-[-.05em] sm:text-7xl">
+          <h2 className="mt-5 max-w-3xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design12HelpMainHeading}
           </h2>
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -118,7 +119,7 @@ export function Design12Page({ data }: { data: StorefrontWebpage }) {
                   className="pointer-events-none absolute -bottom-8 -right-10 h-48 w-40 opacity-80 transition duration-500 group-hover:scale-120"
                 >
                   <circle cx="132" cy="128" r="92" fill="#f6f2ee" />
-                  <circle cx="132" cy="128" r="68" fill="none" stroke="#efd8ca" strokeWidth="1.2" />
+                  <circle cx="132" cy="128" r="68" fill="#fefefc" stroke="#efd8ca" strokeWidth="1.2" />
                 </svg>
               </article>
             ))}
@@ -126,10 +127,10 @@ export function Design12Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16">
         <div className="mx-auto max-w-7xl">
           <Mini>{data.design12MethodologyMiniHeading}</Mini>
-          <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[.94] tracking-[-.05em] sm:text-7xl">
+          <h2 className="mt-5 max-w-3xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design12MethodologyMainHeading}
           </h2>
           <Copy html={data.design12MethodologyDescription} className="mt-8 max-w-xl text-sm" />
@@ -150,10 +151,10 @@ export function Design12Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 text-black sm:px-10 md:px-16">
+      <section className="px-6 md:py-20 py-16 text-black sm:px-10 md:px-16">
         <div className="mx-auto max-w-7xl">
           <Mini light>{data.design12OutcomesMiniHeading}</Mini>
-          <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[.94] tracking-[-.05em] sm:text-7xl">
+          <h2 className="mt-5 max-w-3xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design12OutcomesMainHeading}
           </h2>
           <div className="mt-14 grid gap-0 sm:grid-cols-2 lg:grid-cols-4">
@@ -162,22 +163,22 @@ export function Design12Page({ data }: { data: StorefrontWebpage }) {
                 key={i}
                 className="border border-white/50 p-6 hover:bg-white/10 transition duration-300"
               >
-                <h3 className="text-5xl font-semibold tracking-[-.05em] text-[#e5a17f]">
+                <h3 className="md:text-4xl text-3xl font-semibold tracking-[-.05em] text-[#e5a17f]">
                   {card.miniHeading}
                 </h3>
-                <Copy html={card.description} light className="mt-3 text-sm" />
+                <Copy html={card.description} className="mt-3 text-sm text-[#637179]" />
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
               <Mini>{data.design12RelatedMiniHeading}</Mini>
-              <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[.94] tracking-[-.05em] sm:text-7xl">
+              <h2 className="mt-5 max-w-3xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
                 {data.design12RelatedMainHeading}
               </h2>
             </div>
@@ -213,10 +214,10 @@ export function Design12Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16">
         <div className="mx-auto max-w-7xl">
           <Mini>{data.design12ExploreMiniHeading}</Mini>
-          <h2 className="mt-5 max-w-2xl text-5xl font-medium leading-[.94] tracking-[-.05em] sm:text-7xl">
+          <h2 className="mt-5 max-w-2xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design12ExploreMainHeading}
           </h2>
           <div className="mt-14 grid gap-4 md:grid-cols-3">

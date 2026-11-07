@@ -44,8 +44,7 @@ export function Design10Form({
     </div>
   );
   const rich = (label: string, key: keyof WebpageEditFormValues) => (
-    <RichHtmlField
-      label={label}
+    <RichHtmlField webpageId={webpageId} label={label}
       value={String(values[key] || "")}
       onChange={(html) => patch(key, html as never)}
     />
@@ -161,8 +160,7 @@ export function Design10Form({
                   />
                 </div>
               }
-              <RichHtmlField
-                label="Description"
+              <RichHtmlField webpageId={webpageId} label="Description"
                 value={c.description}
                 onChange={(v) =>
                   update("design10DefineCards", values.design10DefineCards, i, {
@@ -222,8 +220,7 @@ export function Design10Form({
                   />
                 </div>
               </div>
-              <RichHtmlField
-                label="Description"
+              <RichHtmlField webpageId={webpageId} label="Description"
                 value={c.description}
                 onChange={(v) =>
                   update(
@@ -340,8 +337,7 @@ export function Design10Form({
                   />
                 </div>
               </div>
-              <RichHtmlField
-                label="Description"
+              <RichHtmlField webpageId={webpageId} label="Description"
                 value={c.description}
                 onChange={(v) =>
                   update("design10GlobalCards", values.design10GlobalCards, i, {
@@ -385,8 +381,7 @@ export function Design10Form({
                   }
                 />
               </div>
-              <RichHtmlField
-                label="Description"
+              <RichHtmlField webpageId={webpageId} label="Description"
                 value={c.description}
                 onChange={(v) =>
                   update(

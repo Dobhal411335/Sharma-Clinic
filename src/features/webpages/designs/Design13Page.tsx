@@ -5,7 +5,8 @@ import Link from "next/link";
 import { ArrowUpRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { Design13ContactSection } from "@/features/webpages/designs/Design13ContactSection";
-import { HtmlBlock, isFilledText } from "@/features/webpages/webpage-shared";
+import { isFilledText } from "@/features/webpages/webpage-shared";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
 import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
 
 const Mini = ({ children, light = false }: { children?: string; light?: boolean }) =>
@@ -64,11 +65,11 @@ export function Design13Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[10%]">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16 lg:px-[10%]">
         <div className="mx-auto max-w-7xl">
           <div>
             <Mini>{data.design13ProcessMiniHeading}</Mini>
-            <h2 className="mt-5 max-w-xl text-5xl font-semibold leading-[.94] tracking-[-.05em] sm:text-7xl">
+            <h2 className="mt-5 max-w-xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
               {data.design13ProcessMainHeading}
             </h2>
             <div className="mt-14 grid gap-10 md:grid-cols-4 md:gap-0">
@@ -96,11 +97,11 @@ export function Design13Page({ data }: { data: StorefrontWebpage }) {
 
       <Design13ContactSection />
 
-      <section className="bg-[#fcfaf6] px-6 py-28 sm:px-10 md:px-16 lg:px-[9%] lg:py-36">
+      <section className="bg-[#fcfaf6] px-6 md:py-20 py-16 sm:px-10 md:px-16 lg:px-[9%] lg:py-36">
         <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-[.9fr_1.1fr] md:items-start lg:gap-24">
           <div>
             <Mini>{data.design13FaqMiniHeading}</Mini>
-            <h2 className="mt-7 max-w-2xl text-5xl font-semibold leading-[.9] tracking-[-.06em] sm:text-7xl lg:text-[clamp(4rem,6vw,5.4rem)]">
+            <h2 className="mt-5 max-w-2xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
               {data.design13FaqMainHeading}
             </h2>
           </div>
@@ -131,10 +132,10 @@ export function Design13Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[10%]">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16 lg:px-[10%]">
         <div className="mx-auto max-w-7xl">
           <Mini>{data.design13ExploreMiniHeading}</Mini>
-          <h2 className="mt-5 max-w-2xl text-5xl font-semibold leading-[.94] tracking-[-.05em] sm:text-7xl">
+          <h2 className="mt-5 max-w-2xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design13ExploreMainHeading}
           </h2>
           <div className="mt-14 grid gap-4 md:grid-cols-3">

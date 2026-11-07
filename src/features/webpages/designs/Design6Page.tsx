@@ -4,20 +4,12 @@ import {
   Phone,
 } from "lucide-react";
 import {
-  AuthorCard,
   Facebook,
-  GetInTouchCard,
-  HtmlBlock,
-  ImageDotsCarousel,
   Instagram,
-  ShareCard,
-  StaticSidebarCard,
   Youtube,
-  cleanObjectArray,
-  cleanTextArray,
-  formatDate,
   isFilledText,
 } from "@/features/webpages/webpage-shared";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
 import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
 import Image from "next/image";
 
@@ -35,13 +27,10 @@ export function Design6Page({ data }: { data: StorefrontWebpage }) {
     data.bannerImage?.url ||
     data.imageFirst?.url ||
     "";
-  const bannerImageDesktop = data.bannerImage?.url || data.bannerImageMobile?.url;
-  const bannerImageMobile = data.bannerImageMobile?.url || data.bannerImage?.url;
-
 return (
-      <div className="min-h-screen bg-background font-geist text-gray-900">
+      <div className="min-h-screen bg-background font-semibold text-gray-900">
         {/* Top Banner */}
-        <div className="relative h-[500px] md:h-[600px] w-full flex items-end pb-10 pl-6 md:pl-20">
+        <div className="relative h-[150px] md:h-[550px] w-full flex items-end pb-10 pl-6 md:pl-20">
           {designHeaderMobile ? (
             <div
               className="absolute inset-0 bg-contain bg-no-repeat bg-center md:hidden"
@@ -54,19 +43,19 @@ return (
               style={{ backgroundImage: `url(${designHeaderDesktop})` }}
             />
           ) : null}
-          <div className="absolute inset-0 bg-black/5"></div>
+          <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10 text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-2 text-white">
+            <h1 className="text-2xl md:text-5xl font-bold md:mb-2 mb-1 text-white">
               {data.firstTitle || ""}
             </h1>
-            <p className="text-md md:text-lg font-semibold text-white">
+            <p className="text-sm md:text-lg font-semibold text-white">
               {data.secondTitle || ""}
             </p>
           </div>
         </div>
 
         {/* Main Content Area */}
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl md:py-16 py-8 px-5 sm:px-6 lg:px-8">
           {/* Top Section */}
           <div className="mb-12 max-w-7xl">
             <div className="flex justify-between items-start mb-6">
@@ -105,9 +94,10 @@ return (
             )}
 
             {isFilledText(data.design6SubHeading) && (
-              <p className="text-gray-800 text-sm md:text-lg leading-relaxed mb-8 w-full text-justify">
-                {data.design6SubHeading}
-              </p>
+              <HtmlBlock
+                html={data.design6SubHeading}
+                className="mb-8 w-full text-justify text-sm leading-relaxed text-gray-800 md:text-lg"
+              />
             )}
 
             {isFilledText(data.design6Author) && (
@@ -120,7 +110,7 @@ return (
           <hr className="my-10 border-gray-300" />
 
           {/* Mid Section */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 gap-6">
             {isFilledText(data.design6MidHeading) && (
               <h2 className="text-2xl md:text-4xl font-serif text-gray-800 leading-snug max-w-2xl">
                 {data.design6MidHeading}
@@ -129,12 +119,11 @@ return (
           </div>
 
           {/* Team members */}
-          {/* Team members */}
           <div className="flex flex-col gap-10">
             {(data.teamCards || []).map((card, idx) => (
               <div
                 key={idx}
-                className={`mx-auto flex w-full max-w-7xl flex-col gap-5 md:flex-row md:gap-6 border border-border rounded-2xl p-5 md:p-6 ${
+                className={`mx-auto flex w-full max-w-7xl flex-col gap-5 md:flex-row md:gap-6 border border-border rounded-2xl p-2 md:p-6 ${
                   idx % 2 === 1 ? "md:flex-row-reverse" : ""
                 }`}
               >
@@ -147,13 +136,9 @@ return (
                       width={500}
                       height={400}
                       alt={card.name || "Team member"}
-                      className="h-[320px] w-full object-cover md:h-[500px]"
+                      className="h-[450px] w-full object-cover md:h-[500px] hover:scale-105 transition-transform duration-300"
                     />
-                  ) : (
-                    <div className="flex h-[320px] items-center justify-center text-gray-400">
-                      No Image
-                    </div>
-                  )}
+                  ) :null}
                 </div>
 
                 {/* Content */}
@@ -198,7 +183,7 @@ return (
                       {isFilledText(card.phone) && (
                         <a
                           href={`tel:${card.phone?.replace(/[^0-9+]/g, "")}`}
-                          className="text-md font-medium text-gray-700 hover:text-gray-900"
+                          className="text-md font-serif text-gray-700 hover:text-gray-900"
                         >
                           {card.phone}
                         </a>

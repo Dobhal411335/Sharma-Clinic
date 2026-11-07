@@ -1,16 +1,14 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
-import { useState } from "react";
-import { HtmlBlock, isFilledText } from "@/features/webpages/webpage-shared";
+import { ArrowUpRight } from "lucide-react";
+import { isFilledText } from "@/features/webpages/webpage-shared";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
 import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
 
 const Mini = ({ children, light = false }: { children?: string; light?: boolean }) =>
   children ? (
     <p
-      className={`inline-flex items-center gap-3 border-b pb-2 font-ui text-[15px] font-bold uppercase tracking-[.2em] ${light ? "border-[#e6a276] text-[#e6a276]" : "border-[#c96e42] text-[#c96e42]"}`}
+      className={`inline-flex items-center gap-3 border-b pb-2 text-[15px] font-bold uppercase tracking-[.2em] ${light ? "border-[#e6a276] text-[#e6a276]" : "border-[#c96e42] text-[#c96e42]"}`}
     >
       <span className="h-px w-9 bg-current" aria-hidden="true" />
       {children}
@@ -28,7 +26,7 @@ const Mini = ({ children, light = false }: { children?: string; light?: boolean 
     isFilledText(html) ? (
       <HtmlBlock
         html={html!}
-        className={`${light ? "!text-white [&_p]:!text-white" : "text-[#637179]"} [&_p]:leading-7 ${className}`}
+        className={`${light ? "!text-white [&_p]:!text-white" : "!text-black"} [&_p]:leading-7 ${className}`}
       />
     ) : null;
 
@@ -37,20 +35,18 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
   const journeyTimeline = data.design10JourneyTimeline.filter(
     (item) => item.year || item.heading || item.description,
   );
-  const [leaderIndex, setLeaderIndex] = useState(0);
-  const maxLeaderIndex = Math.max(0, leaders.length - 4);
 
   return (
     <div className="min-h-screen bg-[#f8f5ee] text-[#172d35]">
-      <section className="relative flex min-h-screen items-end overflow-hidden bg-[#102a33] px-6 py-20 text-white sm:px-10 md:px-16 lg:px-[10%] lg:py-28">
+       <section className="relative flex min-h-[550px] items-end overflow-hidden bg-[#102a33] px-6 py-20 text-white sm:px-10 md:px-16 lg:px-[10%] lg:py-28">
         {data.design10HeroImage?.url && (
           <div
             className="absolute inset-0 bg-cover bg-center opacity-80"
             style={{ backgroundImage: `url(${data.design10HeroImage.url})` }}
           />
         )}
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,35,44,.96)_0%,rgba(10,35,44,.72)_45%,rgba(10,35,44,.2)_100%)]" />
-        <div className="relative max-w-4xl pb-2 lg:pb-8">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,35,44,.96)_0%,rgba(10,35,44,.72)_10%,rgba(10,35,44,.2)_100%)]" />
+        <div className="relative max-w-4xl md:pb-2 pb-1 lg:pb-8">
           <Mini light>{data.design10HeroMiniHeading}</Mini>
           <h1 className="mt-5 max-w-3xl text-5xl font-semibold leading-[.94] tracking-[-.045em] lg:text-[clamp(4.5rem,7vw,6rem)]">
             {data.design10HeroMainHeading}
@@ -63,11 +59,11 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[10%]">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16 lg:px-[10%]">
         <div className="mx-auto grid max-w-8xl gap-10 md:grid-cols-[.9fr_1.1fr]">
           <div>
             <Mini>Our Story</Mini>
-            <h2 className="mt-5 max-w-5xl text-3xl font-semibold leading-[.96] tracking-[-.04em] sm:text-6xl">
+            <h2 className="mt-5 max-w-5xl text-5xl font-medium leading-[.94] tracking-[-.045em] sm:text-6xl">
               {data.design10StoryMiniHeading}
             </h2>
             <Copy html={data.design10StorySmallParagraph} className="mt-9 max-w-md text-md " />
@@ -82,7 +78,7 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="w-full px-6 py-24 sm:px-10 md:px-16 lg:px-[10%]">
+      <section className="w-full px-6 md:py-20 py-16 sm:px-10 md:px-16 lg:px-[10%]">
         <div className="mx-auto max-w-8xl">
           <Mini>What defines us</Mini>
           <h2 className="mt-5 max-w-5xl text-5xl font-medium leading-[.94] tracking-[-.045em] sm:text-6xl">
@@ -94,7 +90,7 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
               .map((card, i) => (
                 <article
                   key={i}
-                  className="group relative min-h-[300px] overflow-hidden rounded-[28px] border border-white/80 bg-[#fcfaf8] px-5 py-9 text-[#071c2b] shadow-[0_15px_35px_rgba(74,54,34,.07)] transition duration-300 hover:-translate-y-2 hover:border-[#cf7b52] hover:bg-[#cf7b52] hover:text-white "
+                  className="group relative min-h-[300px] overflow-hidden rounded-2xl border border-white/80 bg-[#fcfaf8] px-4 py-9 text-[#071c2b] shadow-[0_15px_35px_rgba(74,54,34,.07)] transition duration-300 hover:-translate-y-2 hover:border-[#cf7b52] hover:bg-[#cf7b52] hover:text-white "
                 >
                   <span className="relative z-10 flex h-9 w-full items-center rounded-full border border-[#f1d8c8] bg-[#f8ede7] px-3 text-md font-bold text-[#a84f31] transition-colors duration-300 group-hover:border-white/30 group-hover:bg-white/15 group-hover:text-white">
                     {String(i + 1).padStart(2, "0")}
@@ -127,7 +123,7 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16">
         <div className="mx-auto flex max-w-7xl flex-col gap-12 md:flex-row md:items-start md:gap-20">
           <div className="w-full md:sticky md:top-28 md:w-[50%] md:shrink-0 md:self-start">
             <div className="relative aspect-[4/5] w-full max-h-[calc(100vh-8.5rem)] overflow-hidden rounded-2xl border-2 border-white">
@@ -150,7 +146,7 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
           </div>
           <div className="min-w-0 flex-1">
             <Mini>{data.design10JourneyMiniHeading}</Mini>
-            <h2 className="mt-5 max-w-xl text-6xl font-semibold leading-[.93] tracking-[-.045em]">
+            <h2 className="mt-5 max-w-5xl text-5xl font-medium leading-[.94] tracking-[-.045em] sm:text-6xl">
               {data.design10JourneyMainHeading}
             </h2>
             <div className="relative mt-14 pb-6 pl-12">
@@ -178,81 +174,49 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 text-white sm:px-10 md:px-16 lg:px-[10%]">
+      <section className="px-6 md:py-20 py-16 text-black sm:px-10 md:px-16 lg:px-[10%]">
         <div className="mx-auto max-w-7xl">
-          <div className="flex items-end justify-between gap-6">
-            <div>
-              <Mini light>{data.design10LeadershipMiniHeading}</Mini>
-              <h2 className="mt-5 max-w-3xl text-5xl font-semibold leading-[.94] tracking-[-.045em] text-black sm:text-6xl">
-                {data.design10LeadershipMainHeading}
-              </h2>
-            </div>
-            {leaders.length > 4 && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  aria-label="Previous leaders"
-                  onClick={() => setLeaderIndex((i) => Math.max(0, i - 1))}
-                  disabled={leaderIndex === 0}
-                  className="flex size-11 items-center justify-center rounded-full border border-white/25 transition hover:bg-white hover:text-[#142d35] disabled:opacity-30"
-                >
-                  <ArrowLeft className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Next leaders"
-                  onClick={() => setLeaderIndex((i) => Math.min(maxLeaderIndex, i + 1))}
-                  disabled={leaderIndex === maxLeaderIndex}
-                  className="flex size-11 items-center justify-center rounded-full border border-white/25 transition hover:bg-white hover:text-[#142d35] disabled:opacity-30"
-                >
-                  <ArrowRight className="size-4" />
-                </button>
-              </div>
-            )}
+          <div>
+            <Mini light>{data.design10LeadershipMiniHeading}</Mini>
+            <h2 className="mt-5 max-w-5xl text-5xl font-medium leading-[.94] tracking-[-.045em] sm:text-6xl">
+              {data.design10LeadershipMainHeading}
+            </h2>
           </div>
-          <div className="mt-14 overflow-hidden">
-            <div
-              className="flex gap-5 transition-transform duration-500"
-              style={{ transform: `translateX(-${leaderIndex * (100 / 4 + 1.25)}%)` }}
-            >
-              {leaders.map((leader, i) => (
-                <article
-                  key={i}
-                  className="group w-[calc(50%-10px)] shrink-0 sm:w-[calc(33.333%-14px)] lg:w-[calc(25%-15px)]"
-                >
-                  <div className="rounded-[24px] border border-white/35 p-1.5">
-                    <div className="relative aspect-[3/4] overflow-hidden rounded-[19px] bg-[#28424a]">
-                      {leader.image?.url && (
-                        <Image
-                          fill
-                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                          src={leader.image.url}
-                          alt={leader.name || "Leader"}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                        />
-                      )}
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-3 z-10 rounded-[14px] border border-white/55"
+          <div className="mt-14 grid grid-cols-1 gap-5 md:grid-cols-3 lg:grid-cols-4">
+            {leaders.map((leader, i) => (
+              <article key={i} className="group">
+                <div className="rounded-[24px] p-1.5">
+                  <div className="relative aspect-[3/4] overflow-hidden rounded-[19px] bg-[#28424a]">
+                    {leader.image?.url && (
+                      <Image
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 33vw, 25vw"
+                        src={leader.image.url}
+                        alt={leader.name || "Leader"}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute inset-x-0 bottom-0 z-20 translate-y-3 bg-gradient-to-t from-[#0d252d]/95 via-[#0d252d]/55 to-transparent px-6 pb-6 pt-16 opacity-100 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                        <h3 className="text-xl font-semibold text-white">{leader.name}</h3>
-                        <p className="mt-1 text-sm text-white/70">{leader.designation}</p>
-                      </div>
+                    )}
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-3 z-10 rounded-[14px] border border-white"
+                    />
+                    <div className="absolute inset-x-0 bottom-0 z-20 translate-y-3 bg-gradient-to-t from-[#0d252d]/95 via-[#0d252d]/55 to-transparent px-6 pb-6 pt-16 opacity-100 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                      <h3 className="text-xl font-semibold text-white">{leader.name}</h3>
+                      <p className="mt-1 text-sm text-white/90">{leader.designation}</p>
                     </div>
                   </div>
-                </article>
-              ))}
-            </div>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[10%]">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16 lg:px-[10%]">
         <div className="mx-auto grid max-w-7xl gap-16 md:grid-cols-[1.05fr_.95fr] md:items-start">
           <div>
             <Mini>{data.design10GlobalMiniHeading}</Mini>
-            <h2 className="mt-5 max-w-2xl text-5xl font-medium leading-[.94] tracking-[-.045em] sm:text-6xl">
+            <h2 className="mt-5 max-w-5xl text-5xl font-medium leading-[.94] tracking-[-.045em] sm:text-6xl">
               {data.design10GlobalMainHeading}
             </h2>
             <Copy html={data.design10GlobalDescription} className="mt-8 max-w-xl text-sm" />
@@ -307,7 +271,7 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
                 )}
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-3 z-10 rounded-[14px] border border-white/55"
+                  className="pointer-events-none absolute inset-3 z-10 rounded-[14px] border border-white"
                 />
               </div>
             </div>
@@ -315,10 +279,10 @@ export function Design10Page({ data }: { data: StorefrontWebpage }) {
         </div>
       </section>
 
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[10%]">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16 lg:px-[10%]">
         <div className="mx-auto max-w-7xl">
           <Mini>{data.design10ExploreMiniHeading}</Mini>
-          <h2 className="mt-5 max-w-3xl text-5xl font-medium leading-[.94] tracking-[-.045em] sm:text-6xl">
+          <h2 className="mt-5 max-w-5xl text-5xl font-medium leading-[.94] tracking-[-.045em] sm:text-6xl">
             {data.design10ExploreMainHeading || ""}
           </h2>
           <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -23,6 +23,20 @@ export type WebpageImageAsset = {
   key: string;
 };
 
+export type StorefrontGridCard = {
+  image?: WebpageImageAsset | null;
+  chipName?: string;
+  title?: string;
+  link?: string;
+  galleryDate?: string;
+  postedBy?: string;
+  galleryDescription?: string;
+  gallerySlug?: string;
+  bentoImages?: WebpageImageAsset[];
+  youtubeShorts?: Array<string | { url?: string }>;
+  youtubeVideos?: Array<string | { url?: string }>;
+};
+
 export type StorefrontWebpage = {
   id: string;
   siteCode: "IN" | "COM";
@@ -78,19 +92,7 @@ export type StorefrontWebpage = {
   }>;
   design5Chip: string;
   design5MainHeading: string;
-  gridCards: Array<{
-    image?: WebpageImageAsset | null;
-    chipName?: string;
-    title?: string;
-    link?: string;
-    galleryDate?: string;
-    postedBy?: string;
-    galleryDescription?: string;
-    gallerySlug?: string;
-    bentoImages?: WebpageImageAsset[];
-    youtubeShorts?: Array<string | { url?: string }>;
-    youtubeVideos?: Array<string | { url?: string }>;
-  }>;
+  gridCards: StorefrontGridCard[];
   design6Chip: string;
   design6ExploreLink: string;
   design6MainHeading: string;

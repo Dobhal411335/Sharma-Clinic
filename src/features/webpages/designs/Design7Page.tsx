@@ -1,26 +1,13 @@
 // @ts-nocheck — ported from Hotel WebPage.jsx; keep visual parity.
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
-  AlertTriangle,
-  Check,
-  ChevronDown,
-  Quote,
-} from "lucide-react";
-import {
-  AuthorCard,
-  GetInTouchCard,
-  HtmlBlock,
-  ImageDotsCarousel,
-  ShareCard,
-  StaticSidebarCard,
-  cleanObjectArray,
-  cleanTextArray,
-  formatDate,
   isFilledText,
 } from "@/features/webpages/webpage-shared";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
 import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
 
 
@@ -38,13 +25,11 @@ export function Design7Page({ data }: { data: StorefrontWebpage }) {
     data.bannerImage?.url ||
     data.imageFirst?.url ||
     "";
-  const bannerImageDesktop = data.bannerImage?.url || data.bannerImageMobile?.url;
-  const bannerImageMobile = data.bannerImageMobile?.url || data.bannerImage?.url;
 
 return (
-      <div className="min-h-screen bg-background font-geist text-gray-900">
+      <div className="min-h-screen bg-background font-semibold text-gray-900">
         {/* Top Banner */}
-        <div className="relative h-[500px] md:h-[600px] w-full flex items-end pb-10 pl-6 md:pl-20">
+        <div className="relative h-[450px] md:h-[550px] w-full flex items-end pb-10 pl-6 md:pl-20">
           {designHeaderMobile ? (
             <div
               className="absolute inset-0 bg-contain bg-no-repeat bg-center md:hidden"
@@ -69,7 +54,7 @@ return (
         </div>
 
         {/* Main Content Area */}
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl md:py-16 py-8 px-5 sm:px-6 lg:px-8">
           {/* Top Section */}
           <div className="mb-12 max-w-7xl">
             <div className="flex justify-between items-start mb-6">
@@ -102,12 +87,11 @@ return (
             </div>
 
             {isFilledText(data.design7MainHeading) && (
-              <h2 className="text-3xl md:text-5xl font-serif text-gray-800 leading-tight mb-6 max-w-3xl">
+              <h2 className="text-3xl md:text-4xl font-serif text-gray-800 leading-tight mb-6 max-w-3xl">
                 {data.design7MainHeading}
               </h2>
             )}
-
-            <hr className="my-10 border-gray-300" />
+            <hr className="my-5 border-gray-300" />
           </div>
 
           {/* Gallery Grid */}
@@ -116,19 +100,17 @@ return (
               {data.gridCards.map((card, idx) => (
                 <div
                   key={idx}
-                  className="relative group overflow-hidden bg-gray-100 aspect-3/4"
+                  className="relative group overflow-hidden border border-gray-300 rounded-md bg-gray-100 aspect-3/4"
                 >
                   {card.image?.url ? (
-                    <img
+                    <Image
                       src={card.image.url}
-                      alt={card.title}
-                      className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
+                      alt={card.title || "Gallery card"}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      No Image
-                    </div>
-                  )}
+                  ) : null}
 
                   {/* Hover Overlay Box */}
                   <div className="absolute bottom-0 left-0 w-[90%] bg-white p-5 transform translate-y-full transition-transform duration-500 ease-in-out group-hover:translate-y-0 shadow-lg">
@@ -138,17 +120,25 @@ return (
                       </div>
                     )}
                     {isFilledText(card.title) && (
-                      <a
-                        href={
-                          card.gallerySlug
-                            ? `/gallery/${card.gallerySlug}`
-                            : "#"
-                        }
-                        className="block text-lg font-serif text-[#3b438c] hover:text-black"
-                      >
-                        {card.title}
-                      </a>
+                      card.gallerySlug ? (
+                        <Link
+                          href={`/gallery/${card.gallerySlug}`}
+                          className="block font-serif text-lg text-[#3b438c] hover:text-black"
+                        >
+                          {card.title}
+                        </Link>
+                      ) : (
+                        <span className="block font-serif text-lg text-[#3b438c]">
+                          {card.title}
+                        </span>
+                      )
                     )}
+                    {isFilledText(card.galleryDescription) ? (
+                      <HtmlBlock
+                        html={card.galleryDescription}
+                        className="mt-2 text-sm text-gray-700"
+                      />
+                    ) : null}
                   </div>
                 </div>
               ))}

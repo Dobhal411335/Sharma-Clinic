@@ -8,9 +8,9 @@ import {
   ImageAssetField,
   Input,
   Label,
+  RichHtmlField,
   SectionCard,
   SeoKeywordsField,
-  Textarea,
 } from "@/components/admin/cms/webpages/webpage-form-fields";
 import {
   createEmptyGridCard,
@@ -26,11 +26,13 @@ export function Design7Form({
   values,
   setValues,
 }: {
-  
   webpageId: string;
   values: WebpageEditFormValues;
   setValues: React.Dispatch<React.SetStateAction<WebpageEditFormValues>>;
 }) {
+  const [topSectionView, setTopSectionView] = useState<"all" | "bannerOnly">(
+    "all",
+  );
   const [uploadingBento, setUploadingBento] = useState(false);
   const patch = <K extends keyof WebpageEditFormValues>(
     key: K,
@@ -82,38 +84,88 @@ export function Design7Form({
           onTitleLineChange={(v) => patch("titleLine", v)}
           onKeywordsChange={(v) => patch("keywords", v)}
         />
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Main top tag line</Label>
-            <Input
-              value={values.firstTitle}
-              onChange={(e) => patch("firstTitle", e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Main short tag line</Label>
-            <Input
-              value={values.secondTitle}
-              onChange={(e) => patch("secondTitle", e.target.value)}
-            />
+
+        <div className="space-y-2">
+          <Label>Top section view layout</Label>
+          <div className="inline-flex rounded-xl border border-border bg-muted/40 p-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={topSectionView === "all" ? "secondary" : "ghost"}
+              onClick={() => setTopSectionView("all")}
+            >
+              All inputs
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={topSectionView === "bannerOnly" ? "secondary" : "ghost"}
+              onClick={() => setTopSectionView("bannerOnly")}
+            >
+              Banner image only
+            </Button>
           </div>
         </div>
-        <ImageAssetField
-         
-          webpageId={webpageId}
-          inputId="d7-banner"
-          label="Banner image (laptop)"
-          value={values.bannerImage}
-          onChange={(v) => patch("bannerImage", v)}
-        />
-        <ImageAssetField
-         
-          webpageId={webpageId}
-          inputId="d7-banner-mobile"
-          label="Banner image (mobile)"
-          value={values.bannerImageMobile}
-          onChange={(v) => patch("bannerImageMobile", v)}
-        />
+
+        {topSectionView === "all" ? (
+          <>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="d7-firstTitle">Main top tag line</Label>
+                <Input
+                  id="d7-firstTitle"
+                  value={values.firstTitle}
+                  onChange={(e) => patch("firstTitle", e.target.value)}
+                  placeholder="Enter main tagline…"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="d7-secondTitle">Main short tag line</Label>
+                <Input
+                  id="d7-secondTitle"
+                  value={values.secondTitle}
+                  onChange={(e) => patch("secondTitle", e.target.value)}
+                  placeholder="Enter subtitle tagline…"
+                />
+              </div>
+            </div>
+            <ImageAssetField
+              webpageId={webpageId}
+              inputId="d7-image-first"
+              label="Main top image (laptop)"
+              hint="Supports PNG, JPG, JPEG"
+              value={values.imageFirst}
+              onChange={(v) => patch("imageFirst", v)}
+            />
+            <ImageAssetField
+              webpageId={webpageId}
+              inputId="d7-image-first-mobile"
+              label="Main top image (mobile)"
+              hint="Recommended size: 800x1000 px"
+              value={values.imageFirstMobile}
+              onChange={(v) => patch("imageFirstMobile", v)}
+            />
+          </>
+        ) : (
+          <>
+            <ImageAssetField
+              webpageId={webpageId}
+              inputId="d7-banner"
+              label="Main top banner image (laptop)"
+              hint="Recommended size: 1200x400 px"
+              value={values.bannerImage}
+              onChange={(v) => patch("bannerImage", v)}
+            />
+            <ImageAssetField
+              webpageId={webpageId}
+              inputId="d7-banner-mobile"
+              label="Main top banner image (mobile)"
+              hint="Recommended size: 800x1000 px"
+              value={values.bannerImageMobile}
+              onChange={(v) => patch("bannerImageMobile", v)}
+            />
+          </>
+        )}
       </SectionCard>
 
       <SectionCard
@@ -256,16 +308,16 @@ export function Design7Form({
                           }}
                         />
                       </div>
-                      <div className="space-y-1 md:col-span-2">
-                        <Label>Description paragraph</Label>
-                        <Textarea
-                          rows={6}
+                      <div className="md:col-span-2">
+                        <RichHtmlField
+                          webpageId={webpageId}
+                          label="Description paragraph"
                           value={card.galleryDescription || ""}
-                          onChange={(e) => {
+                          onChange={(html) => {
                             const next = [...values.gridCards];
                             next[index] = {
                               ...next[index],
-                              galleryDescription: e.target.value,
+                              galleryDescription: html,
                             };
                             patch("gridCards", next);
                           }}

@@ -1,6 +1,14 @@
 import { cache } from "react";
 
-import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
+import type {
+  StorefrontGridCard,
+  StorefrontWebpage,
+} from "@/features/webpages/webpage.types";
+
+export type WebpageGalleryDetail = {
+  webpage: StorefrontWebpage;
+  galleryCard: StorefrontGridCard;
+};
 
 type ApiSuccess<T> = {
   success: true;
@@ -192,6 +200,35 @@ export const getWebpageBySlug = cache(
       );
       if (!match?.slug) return null;
       return mapWebpage(match);
+    } catch {
+      return null;
+    }
+  },
+);
+
+/**
+ * Design 7 gallery detail: find an active webpage whose gridCards
+ * contain a matching gallerySlug.
+ */
+export const getWebpageGalleryBySlug = cache(
+  async (gallerySlug: string): Promise<WebpageGalleryDetail | null> => {
+    const normalized = gallerySlug.trim();
+    if (!normalized) return null;
+
+    try {
+      const { listItems } = await import("@/features/cms/store");
+      const items = await listItems("webpage");
+      for (const item of items) {
+        if (item.active === false) continue;
+        const webpage = mapWebpage(item);
+        const galleryCard = webpage.gridCards.find(
+          (card) => card.gallerySlug === normalized,
+        );
+        if (galleryCard) {
+          return { webpage, galleryCard };
+        }
+      }
+      return null;
     } catch {
       return null;
     }

@@ -115,8 +115,7 @@ export function Design9Form({
           onChange={(e) => patch("design9MainHeading", e.target.value)}
         />
       </div>
-      <RichHtmlField
-        label="Description"
+      <RichHtmlField webpageId={webpageId} label="Description"
         value={values.design9Description}
         onChange={(html) => patch("design9Description", html)}
         onUploadImage={uploadInline}
@@ -159,8 +158,7 @@ export function Design9Form({
                 }}
               />
             </div>
-            <RichHtmlField
-              label="Description"
+            <RichHtmlField webpageId={webpageId} label="Description"
               value={card.description}
               onChange={(html) => {
                 const next = [...values.design9Cards];

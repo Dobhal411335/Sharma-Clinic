@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { ArrowUpRight, Plus } from "lucide-react";
 import { useState } from "react";
-import { HtmlBlock, isFilledText } from "@/features/webpages/webpage-shared";
+import { isFilledText } from "@/features/webpages/webpage-shared";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
 import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
 
 const Mini = ({ children, light = false }: { children?: string; light?: boolean }) =>
   children ? (
     <p
-      className={`inline-flex items-center gap-3 border-b pb-2 font-ui text-[10px] font-bold uppercase tracking-[.2em] ${light ? "border-[#d68b64] text-[#d68b64]" : "border-[#bd6d4b] text-[#bd6d4b]"}`}
+      className={`inline-flex items-center gap-3 border-b pb-2 font-ui text-[15px] font-bold uppercase tracking-[.2em] ${light ? "border-[#d68b64] text-[#d68b64]" : "border-[#bd6d4b] text-[#bd6d4b]"}`}
     >
       <span className="h-px w-8 bg-current" />
       {children}
@@ -39,21 +40,21 @@ export function Design15Page({ data }: { data: StorefrontWebpage }) {
   );
   return (
     <div className="min-h-screen bg-[#f8f5ee] text-[#172d35]">
-      <section className="relative overflow-hidden bg-[#0c252e] px-6 py-28 text-white sm:px-10 md:px-16 lg:px-[9.5%] lg:py-36">
+      <section className="relative overflow-hidden bg-[#0c252e] px-6 md:py-20 py-16 text-white sm:px-10 md:px-16 lg:px-[9.5%] lg:py-36">
         <div className="pointer-events-none absolute -right-24 -top-28 size-[430px] rounded-full border border-white/[.06] shadow-[0_0_0_58px_rgba(255,255,255,.025),0_0_0_116px_rgba(255,255,255,.018)]" />
         <div className="relative mx-auto max-w-7xl">
           <Mini light>{data.design15HeroMiniHeading}</Mini>
-          <h1 className="mt-7 max-w-3xl text-5xl font-medium leading-[.92] tracking-[-.06em] sm:text-7xl lg:text-[clamp(4rem,7vw,5.4rem)]">
+          <h1 className="mt-7 max-w-3xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
             {data.design15HeroMainHeading}
           </h1>
           <Copy html={data.design15HeroDescription} light className="mt-10 max-w-2xl text-base" />
         </div>
       </section>
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[9.5%] lg:py-28">
+      <section className="px-6 md:py-20 py-16 sm:px-10 md:px-16 lg:px-[9.5%] lg:py-28">
         <div className="mx-auto flex max-w-7xl flex-col gap-14 md:flex-row md:items-start md:gap-20">
           <div className="w-full md:sticky md:top-28 md:w-[42%] md:shrink-0 md:self-start">
             <Mini>{data.design15NoticeMiniHeading}</Mini>
-            <h2 className="mt-6 max-w-xl text-5xl font-medium leading-[.94] tracking-[-.055em] sm:text-7xl">
+            <h2 className="mt-6 max-w-xl text-4xl font-medium leading-[.94] tracking-[-.05em] sm:text-6xl">
               {data.design15NoticeMainHeading}
             </h2>
             <Copy html={data.design15NoticeDescription} className="mt-8 max-w-md text-sm" />
@@ -88,7 +89,7 @@ export function Design15Page({ data }: { data: StorefrontWebpage }) {
           </div>
         </div>
       </section>
-      <section className="px-6 py-24 sm:px-10 md:px-16 lg:px-[9.5%] lg:py-28">
+      <section className="px-6 md:py-20 py-10 sm:px-10 md:px-16 lg:px-[9.5%] lg:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-4 md:grid-cols-3">
             {cards.map((card, i) => (

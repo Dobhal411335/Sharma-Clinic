@@ -1,26 +1,17 @@
-// @ts-nocheck — ported from Hotel WebPage.jsx; keep visual parity.
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   AlertTriangle,
-  Check,
-  ChevronDown,
   Quote,
 } from "lucide-react";
 import {
-  AuthorCard,
-  GetInTouchCard,
-  HtmlBlock,
-  ImageDotsCarousel,
-  ShareCard,
-  StaticSidebarCard,
   cleanObjectArray,
   cleanTextArray,
-  formatDate,
   isFilledText,
 } from "@/features/webpages/webpage-shared";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
 import type { StorefrontWebpage } from "@/features/webpages/webpage.types";
 import Image from "next/image";
 
@@ -56,9 +47,9 @@ export function Design4Page({ data }: { data: StorefrontWebpage }) {
     [data.highlights],
   );
 return (
-      <div className="min-h-screen bg-background font-geist text-gray-900">
+      <div className="min-h-screen bg-background font-semibold text-gray-900">
         {/* Top Banner */}
-        <div className="relative h-[500px] md:h-[600px] w-full flex items-end pb-10 pl-6 md:pl-20">
+        <div className="relative h-[450px] md:h-[550px] w-full flex items-end pb-10 pl-6 md:pl-20">
           {designHeaderMobile ? (
             <div
               className="absolute inset-0 bg-contain bg-no-repeat bg-center md:hidden"
@@ -71,7 +62,7 @@ return (
               style={{ backgroundImage: `url(${designHeaderDesktop})` }}
             />
           ) : null}
-          <div className="absolute inset-0 bg-black/5"></div>
+          <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10 text-white">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
               {data.firstTitle || ""}
@@ -83,12 +74,12 @@ return (
         </div>
 
         {/* Main Content Area */}
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 py-8 sm:px-6 lg:grid-cols-[1fr_320px] lg:items-start lg:px-8">
           {/* Left Column */}
-          <div className="space-y-8 border-r border-gray-900 px-5">
+          <div className="space-y-8 border-r border-gray-900 px-3 md:px-5">
             {/* Blockquote Tags */}
             {blockquoteTags.length > 0 && (
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className="flex flex-wrap gap-2 justify-start">
                 {blockquoteTags.map((tag, idx) => (
                   <span
                     key={idx}
@@ -110,7 +101,7 @@ return (
               return (
                 <section
                   key={paraIdx}
-                  className="mb-10 rounded-xl border border-gray-600 bg-background p-6 md:p-8 shadow-sm"
+                  className="mb-10 rounded-xl border border-gray-600 bg-background p-4 md:p-8 shadow-sm"
                 >
                   {/* Heading */}
                   {isFilledText(para.title) && (
@@ -136,18 +127,18 @@ return (
                       {paraImages.map((imgUrl, idx) => (
                         <div
                           key={idx}
-                          className={`overflow-hidden rounded-xl shadow-md ${
+                          className={`overflow-hidden rounded-xl${
                             paraImages.length > 1
                               ? "aspect-square"
-                              : "h-[280px] sm:h-[320px] md:h-[360px]"
+                              : "h-[300px] sm:h-[320px] md:h-[360px]"
                           }`}
                         >
                           <Image
                             width={1200}
                             height={800}
-                            src={imgUrl}
+                            src={imgUrl || ""}
                             alt={`${para.title || "Paragraph"} ${idx + 1}`}
-                            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                            className="h-full w-full object-contain md:object-cover transition-transform duration-300 hover:scale-105"
                           />
                         </div>
                       ))}
@@ -155,7 +146,7 @@ return (
                   )}
 
                   {/* Bullet Points */}
-                  {para.bulletPoints?.length > 0 && (
+                  {para.bulletPoints?.length && para.bulletPoints.length > 0 && (
                     <div className="mt-8">
                       <ul className="space-y-4">
                         {para.bulletPoints.map(
@@ -167,9 +158,9 @@ return (
                               >
                                 <span className="mt-2 h-2.5 w-2.5 rounded-full bg-blue-600 shrink-0" />
 
-                                <span
+                                <HtmlBlock
+                                  html={point}
                                   className="leading-7 text-gray-700"
-                                  dangerouslySetInnerHTML={{ __html: point }}
                                 />
                               </li>
                             ),
@@ -267,7 +258,12 @@ return (
                               </h4>
                             )}
 
-                            <p className="leading-6">{notice.description}</p>
+                            {isFilledText(notice.description) ? (
+                              <HtmlBlock
+                                html={notice.description}
+                                className="leading-6"
+                              />
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -355,7 +351,7 @@ return (
           </div>
 
           {/* Right Column */}
-          <div className="space-y-6">
+          <aside className="space-y-6 lg:sticky lg:top-20 lg:self-start px-3">
             {/* Advertisements */}
             {((data.advertisements && data.advertisements.length > 0) ||
               data.advertisementImage?.url) && (
@@ -373,27 +369,31 @@ return (
                     ad.image?.url && (
                       <div
                         key={idx}
-                        className="group overflow-hidden rounded-xl border border-gray-100 shadow-sm transition-all duration-500 hover:-translate-y-1 hover:shadow-lg"
+                        className="group overflow-hidden rounded-xl border border-gray-100 transition-all duration-500 hover:-translate-y-1 hover:shadow-lg"
                       >
                         {ad.url ? (
                           <a
                             href={ad.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block relative overflow-hidden"
+                            className="relative block overflow-hidden"
                           >
-                            <img
+                            <Image
                               src={ad.image.url}
                               alt={`Advertisement ${idx + 1}`}
-                              className="w-full h-auto object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                              width={1200}
+                              height={600}
+                              className="h-auto w-full object-contain md:object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                             />
-                            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <div className="absolute inset-0 bg-black/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                           </a>
                         ) : (
-                          <img
+                          <Image
                             src={ad.image.url}
                             alt={`Advertisement ${idx + 1}`}
-                            className="w-full h-auto object-cover"
+                            width={1200}
+                            height={600}
+                            className="h-auto w-full object-contain md:object-cover"
                           />
                         )}
                       </div>
@@ -435,7 +435,7 @@ return (
                 </div>
               </div>
             )}
-          </div>
+          </aside>
         </div>
 
         {/* <PopularDestinations /> */}

@@ -122,7 +122,7 @@ export function SiteHeader() {
                       : {})}
                   >
                     <Icon className="size-3.5" aria-hidden="true" />
-                    <span className="truncate">{text}</span>
+                    <span className="truncate font-serif">{text}</span>
                   </Link>
                 ))}
               </div>
@@ -137,7 +137,7 @@ export function SiteHeader() {
 
           <Link
             href="/"
-            className="flex items-center gap-2 font-display text-2xl font-semibold tracking-tight text-white transition-opacity duration-200 hover:opacity-90 sm:text-3xl"
+            className="flex items-center gap-2 font-serif text-2xl font-semibold tracking-tight text-white transition-opacity duration-200 hover:opacity-90 sm:text-3xl"
             aria-label={brandName}
           >
             {logoUrl ? (

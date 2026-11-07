@@ -2,9 +2,10 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { companyDisplayName } from "@/data/site";
 import { useCompanyBasicInfo } from "@/providers/company-basic-info-provider";
-import Link from "next/link";
 import {
   ChevronDown,
   Globe,
@@ -25,7 +26,8 @@ import {
 } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
 import { showError, showSuccess } from "@/lib/toast";
-import type { StorefrontWebpage, WebpageImageAsset } from "@/features/webpages/webpage.types";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
+import { isFilledText } from "@/features/webpages/utils/is-filled-text";
 
 function Facebook({ className }) {
   return (
@@ -106,14 +108,15 @@ function Google({ className }) {
     </svg>
   );
 }
-const isFilledText = (value: unknown): value is string =>
-  typeof value === "string" && value.replace(/<[^>]*>/g, "").trim().length > 0;
 
-const cleanTextArray = (items = []) =>
+const cleanTextArray = (items: readonly unknown[] = []): string[] =>
   items.filter((item) => isFilledText(item));
 
-const cleanObjectArray = (items = [], keys = []) =>
-  items.filter((item) => keys.some((key) => isFilledText(item?.[key])));
+const cleanObjectArray = <T extends object>(
+  items: readonly T[] = [],
+  keys: readonly (keyof T)[] = [],
+): T[] =>
+  items.filter((item) => keys.some((key) => isFilledText(item[key])));
 
 const formatDate = (value) => {
   if (!value) return "";
@@ -124,16 +127,6 @@ const formatDate = (value) => {
     month: "long",
     day: "numeric",
   });
-};
-
-const HtmlBlock = ({ html, className = "" }) => {
-  if (!isFilledText(html)) return null;
-  return (
-    <div
-      className={`rich-html ${className}`.trim()}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  );
 };
 
 const ImageDotsCarousel = ({ images = [], alt = "" }) => {
@@ -157,11 +150,13 @@ const ImageDotsCarousel = ({ images = [], alt = "" }) => {
 
   if (slides.length === 1) {
     return (
-      <div className="overflow-hidden bg-surface rounded-image">
-        <img
+      <div className="overflow-hidden bg-surface rounded-md">
+        <Image
           src={slides[0].url}
           alt={alt}
-          className="h-[300px] w-full object-cover md:h-[400px]"
+          width={1200}
+          height={800}
+          className="h-[300px] w-full object-cover md:h-[400px] hover:scale-105 transition-transform duration-300"
         />
       </div>
     );
@@ -170,17 +165,19 @@ const ImageDotsCarousel = ({ images = [], alt = "" }) => {
   return (
     <div>
       <Carousel className="w-full" opts={{ loop: true }} setApi={setApi}>
-        <div className="relative overflow-hidden bg-surface rounded-image">
+        <div className="relative overflow-hidden bg-surface rounded-md">
           <CarouselContent className="-ml-0">
             {slides.map((img, idx) => (
               <CarouselItem
                 key={img.key || `${img.url}-${idx}`}
                 className="pl-0"
               >
-                <img
+                <Image
                   src={img.url}
                   alt={`${alt} ${idx + 1}`}
-                  className="h-[300px] w-full object-cover md:h-[400px]"
+                  width={1200}
+                  height={800}
+                  className="h-[300px] w-full object-cover md:h-[400px] hover:scale-105 transition-transform duration-300"
                 />
               </CarouselItem>
             ))}
@@ -198,7 +195,7 @@ const ImageDotsCarousel = ({ images = [], alt = "" }) => {
             onClick={() => api?.scrollTo(idx)}
             className={cn(
               "size-2 rounded-full transition-colors",
-              idx === activeIndex ? "bg-heading" : "bg-border",
+              idx === activeIndex ? "bg-black" : "bg-gray-400",
             )}
           />
         ))}
@@ -218,10 +215,12 @@ const StaticSidebarCard = ({ data }) => {
 
   const card = (
     <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm">
-      <img
+      <Image
         src={adImage}
         alt={data.title || "Advertisement"}
-        className="h-full w-full object-contain hover:scale-105 transition-all duration-300"
+        width={800}
+        height={1000}
+        className="h-full w-full object-contain transition-all duration-300 hover:scale-105"
       />
     </div>
   );
@@ -338,9 +337,11 @@ const AuthorCard = ({ data }) => {
       </p>
       <div className="mt-4 flex items-start gap-3">
         {authorImage ? (
-          <img
+          <Image
             src={authorImage}
             alt={authorName}
+            width={48}
+            height={48}
             className="h-12 w-12 rounded-full object-cover"
           />
         ) : (
