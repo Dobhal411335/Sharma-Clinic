@@ -116,6 +116,7 @@ async function ensureInitialAdmin(prisma: PrismaClient): Promise<void> {
       passwordHash,
       role: "ADMIN",
       isActive: true,
+      approvalStatus: "APPROVED",
     },
   });
 
@@ -215,6 +216,7 @@ async function seedDemoData(prisma: PrismaClient): Promise<void> {
         name: "Demo Doctor",
         role: "DOCTOR",
         isActive: true,
+        approvalStatus: "APPROVED",
       },
     });
   } else {
@@ -226,6 +228,7 @@ async function seedDemoData(prisma: PrismaClient): Promise<void> {
         passwordHash,
         role: "DOCTOR",
         isActive: true,
+        approvalStatus: "APPROVED",
       },
     });
     doctorUserId = created.id;

@@ -1,6 +1,10 @@
 import type { SiteCode } from "@/types/admin/auth";
 
-export type HeroBannerLayoutType = "FULL_WIDTH" | "SPLIT_DUAL" | "MULTI_IMAGE";
+export type HeroBannerLayoutType =
+  | "FULL_WIDTH"
+  | "SPLIT_DUAL"
+  | "MULTI_IMAGE"
+  | "DOCTOR_BANNER";
 
 export type HeroBannerImageValue = {
   url: string;
@@ -31,6 +35,9 @@ export type HeroBannerSlideFormValues = {
   leftImageClickUrl: string;
   rightImage: HeroBannerImageValue;
   rightImageClickUrl: string;
+  secondaryHeading: string;
+  secondaryDescription: string;
+  callNumber: string;
   gridImages: HeroBannerGridImageFormValues[];
 };
 
@@ -69,6 +76,9 @@ export type HeroBannerSlideDto = {
   rightImageUrl: string;
   rightImagePublicId: string;
   rightImageClickUrl: string;
+  secondaryHeading: string;
+  secondaryDescription: string;
+  callNumber: string;
   gridImages: HeroBannerGridImageDto[];
 };
 
@@ -98,6 +108,9 @@ export type HeroBannerSlidePayload = {
   rightImageUrl: string;
   rightImagePublicId: string;
   rightImageClickUrl: string;
+  secondaryHeading: string;
+  secondaryDescription: string;
+  callNumber: string;
   gridImages: Array<{
     imageUrl: string;
     imagePublicId: string;

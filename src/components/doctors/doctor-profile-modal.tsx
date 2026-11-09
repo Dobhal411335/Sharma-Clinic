@@ -1,7 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ArrowUpRight } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -18,6 +20,7 @@ type DoctorProfileModalProps = {
   doctor: DoctorProfile | null;
   onSelectSpecialization?: (specialization: string) => void;
   onSelectLocation?: (location: { state: string; city: string }) => void;
+  onBookAppointment?: (doctor: DoctorProfile) => void;
 };
 
 function Section({
@@ -54,6 +57,7 @@ export function DoctorProfileModal({
   doctor,
   onSelectSpecialization,
   onSelectLocation,
+  onBookAppointment,
 }: DoctorProfileModalProps) {
   const phoneHref = doctor?.phone ? `tel:${doctor.phone.replace(/\s/g, "")}` : "";
   const hasQualification = Boolean(
@@ -110,6 +114,18 @@ export function DoctorProfileModal({
                         </span>
                       ),
                     )}
+                  </div>
+                ) : null}
+                {onBookAppointment ? (
+                  <div className="pt-1">
+                    <Button
+                      type="button"
+                      onClick={() => onBookAppointment(doctor)}
+                      className="inline-flex items-center gap-1"
+                    >
+                      Book Appointment
+                      <ArrowUpRight className="size-4" aria-hidden />
+                    </Button>
                   </div>
                 ) : null}
               </DialogHeader>

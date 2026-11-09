@@ -1,9 +1,9 @@
 ﻿import type { Metadata } from "next";
 
-import { DoctorProfilePage } from "@/components/admin/cms/doctors/doctor-profile-page";
+import { CreateDoctorAccountPage } from "@/components/admin/cms/doctors/create-doctor-account-page";
 
-export const metadata: Metadata = { title: "DoctorProfilePage" };
+export const metadata: Metadata = { title: "Create Doctor Profile" };
 
 export default function Page() {
-  return <DoctorProfilePage />;
+  return <CreateDoctorAccountPage />;
 }

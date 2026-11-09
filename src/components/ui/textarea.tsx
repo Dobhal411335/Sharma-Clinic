@@ -1,7 +1,17 @@
 import * as React from "react"
 import { cn } from "cn"
 
-function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
+function Textarea({
+  className,
+  value,
+  defaultValue,
+  ...props
+}: React.ComponentProps<"textarea">) {
+  const valueProps =
+    defaultValue !== undefined && value === undefined
+      ? { defaultValue }
+      : { value: value ?? "" }
+
   return (
     <textarea
       data-slot="textarea"
@@ -10,6 +20,7 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
         className
       )}
       {...props}
+      {...valueProps}
     />
   )
 }

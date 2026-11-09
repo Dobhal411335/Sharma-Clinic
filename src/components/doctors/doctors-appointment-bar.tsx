@@ -22,6 +22,7 @@ export type DoctorSearchFilters = {
   speciality: string;
   state: string;
   city: string;
+  location: string;
 };
 
 type DoctorsAppointmentBarProps = {
@@ -36,7 +37,7 @@ type DoctorsAppointmentBarProps = {
 };
 
 /**
- * Doctor search bar — name, specialization, state, and city filters.
+ * Doctor search bar — name, location, specialization, state, and city filters.
  * Options come from the doctor profiles currently shown on the page.
  */
 export function DoctorsAppointmentBar({
@@ -75,7 +76,7 @@ export function DoctorsAppointmentBar({
             event.preventDefault();
           }}
         >
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <label className="block space-y-1.5">
               <span className="text-sm font-semibold text-foreground">Doctor Name</span>
               <span className="relative block">
@@ -84,7 +85,26 @@ export function DoctorsAppointmentBar({
                   name="doctor-name"
                   value={filters.name}
                   onChange={(event) => patch({ name: event.target.value })}
-                  placeholder="Search name, specialization, or location"
+                  placeholder="Search by doctor name"
+                  autoComplete="off"
+                  className={`${FILTER_CONTROL_CLASS} w-full pl-3.5 pr-10 text-foreground outline-none placeholder:text-muted-foreground`}
+                />
+                <Search
+                  className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 text-primary"
+                  aria-hidden
+                />
+              </span>
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-sm font-semibold text-foreground">Location</span>
+              <span className="relative block">
+                <input
+                  type="search"
+                  name="doctor-location"
+                  value={filters.location}
+                  onChange={(event) => patch({ location: event.target.value })}
+                  placeholder="Search by state, city, or location"
                   autoComplete="off"
                   className={`${FILTER_CONTROL_CLASS} w-full pl-3.5 pr-10 text-foreground outline-none placeholder:text-muted-foreground`}
                 />

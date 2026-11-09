@@ -57,6 +57,9 @@ export function createEmptySlide(
     leftImageClickUrl: "",
     rightImage: emptyImage(),
     rightImageClickUrl: "",
+    secondaryHeading: "",
+    secondaryDescription: "",
+    callNumber: "",
     gridImages,
   };
 }
@@ -97,6 +100,9 @@ export function dtoToFormValues(dto: HeroBannerConfigDto): HeroBannerFormValues 
         publicId: slide.rightImagePublicId,
       },
       rightImageClickUrl: slide.rightImageClickUrl,
+      secondaryHeading: slide.secondaryHeading ?? "",
+      secondaryDescription: slide.secondaryDescription ?? "",
+      callNumber: slide.callNumber ?? "",
       gridImages: slide.gridImages.map((image) => ({
         image: { url: image.imageUrl, publicId: image.imagePublicId },
         alt: image.alt,
@@ -127,5 +133,11 @@ export const HERO_TAB_META: Array<{
     layoutType: "MULTI_IMAGE",
     label: "Associate brands",
     description: "Heading, CTA, and a 4–6 image brand grid (no background banner images).",
+  },
+  {
+    layoutType: "DOCTOR_BANNER",
+    label: "Doctor banner",
+    description:
+      "Background image with a headline card, inset image card, and welcome/call card.",
   },
 ];

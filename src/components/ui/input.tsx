@@ -1,7 +1,19 @@
 import * as React from "react"
 import { cn } from "cn"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({
+  className,
+  type,
+  value,
+  defaultValue,
+  ...props
+}: React.ComponentProps<"input">) {
+  // Keep controlled inputs stable: never flip value from undefined → string.
+  const valueProps =
+    defaultValue !== undefined && value === undefined
+      ? { defaultValue }
+      : { value: value ?? "" }
+
   return (
     <input
       type={type}
@@ -13,6 +25,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         className
       )}
       {...props}
+      {...valueProps}
     />
   )
 }

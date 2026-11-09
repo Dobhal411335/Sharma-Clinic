@@ -123,7 +123,7 @@ export function PromoPopupBanner({
               asChild
               size="lg"
               variant="outline"
-              className="mt-8 border border-black hover:bg-primary hover:text-white transition-colors duration-300 min-w-[12rem]"
+              className="mt-8 border border-black bg-green-500 hover:bg-green-600 hover:text-black transition-colors duration-300 min-w-[12rem]"
             >
               <Link href={banner.buttonUrl} onClick={() => dismiss(false)}>
                 {banner.buttonLabel}

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, Phone } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -241,6 +241,121 @@ function SplitDualSlide({ slide, priority }: { slide: StorefrontHeroSlide; prior
   );
 }
 
+function telHref(callNumber: string) {
+  const digits = callNumber.replace(/[^\d+]/g, "");
+  return digits ? `tel:${digits}` : undefined;
+}
+
+function DoctorBannerSlide({
+  slide,
+  priority,
+}: {
+  slide: StorefrontHeroSlide;
+  priority?: boolean;
+}) {
+  const isMobile = useIsMobileViewport();
+  const bgSrc =
+    (isMobile ? slide.mobileImageUrl : slide.desktopImageUrl) ||
+    slide.desktopImageUrl ||
+    slide.mobileImageUrl;
+  const callHref = telHref(slide.callNumber);
+
+  return (
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#123d67]">
+      {bgSrc ? (
+        <Image
+          src={bgSrc}
+          alt=""
+          fill
+          className="object-cover object-center"
+          sizes="100vw"
+          priority={priority}
+        />
+      ) : null}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#0b2433]/45 via-[#0b2433]/15 to-transparent" />
+
+      <div className="relative z-10 flex min-h-screen w-full items-end px-4 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-14">
+        <div className="grid w-full max-w-xl gap-3 lg:grid-cols-2">
+          <article className="rounded-2xl border border-white/70 bg-white/85 p-4 shadow-[0_14px_28px_rgba(12,40,55,.16)] backdrop-blur-md sm:p-5 lg:col-span-2 lg:max-w-md">
+            {slide.miniHeading ? (
+              <p className="text-[10px] font-semibold tracking-[0.16em] text-primary uppercase">
+                {slide.miniHeading}
+              </p>
+            ) : null}
+            <h1 className="mt-2 text-xl font-semibold leading-[1.12] tracking-[-0.03em] text-[#14272e] sm:text-2xl">
+              {slide.mainHeading}
+            </h1>
+            {slide.description ? (
+              <p className="mt-2.5 text-xs leading-relaxed text-[#5f6f78] sm:text-sm">
+                {slide.description}
+              </p>
+            ) : null}
+            {slide.buttonLabel ? (
+              <Button
+                asChild
+                size="sm"
+                className="group mt-4 h-auto rounded-full bg-primary px-1.5 py-1.5 text-white hover:bg-primary/90"
+              >
+                <Link
+                  href={slide.buttonUrl || "/doctors"}
+                  className="relative inline-flex items-center"
+                >
+                  <span className="absolute top-1/2 left-1.5 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 transition-all duration-300 ease-out group-hover:left-[calc(100%-1.875rem)]">
+                    <ArrowRight className="size-3.5 transition-transform duration-300 ease-out group-hover:translate-x-0.5" />
+                  </span>
+                  <span className="px-3 py-1.5 pl-9 text-sm transition-all duration-300 ease-out group-hover:pr-9 group-hover:pl-3">
+                    {slide.buttonLabel}
+                  </span>
+                </Link>
+              </Button>
+            ) : null}
+          </article>
+
+          <article className="relative min-h-[120px] overflow-hidden rounded-2xl border border-white/70 bg-white/40 shadow-[0_10px_22px_rgba(12,40,55,.14)] sm:min-h-[140px]">
+            {slide.leftImageUrl ? (
+              <Image
+                src={slide.leftImageUrl}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 240px"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-[#d7e8ef] to-[#b7cfd9]" />
+            )}
+          </article>
+
+          <article className="flex min-h-[120px] flex-col overflow-hidden rounded-2xl border border-white/70 bg-[#eef8f1]/95 shadow-[0_10px_22px_rgba(12,40,55,.14)] backdrop-blur-md sm:min-h-[140px]">
+            <div className="flex flex-1 flex-col p-3.5 sm:p-4">
+              {slide.secondaryHeading ? (
+                <h2 className="text-base font-semibold leading-snug tracking-[-0.02em] text-[#14272e] sm:text-lg">
+                  {slide.secondaryHeading}
+                </h2>
+              ) : null}
+              {slide.secondaryDescription ? (
+                <p className="mt-2 text-xs leading-relaxed text-[#5f6f78]">
+                  {slide.secondaryDescription}
+                </p>
+              ) : null}
+            </div>
+            {slide.callNumber ? (
+              <a
+                href={callHref}
+                className="mt-auto flex items-center gap-2.5 border-t border-[#cfe6d6] bg-[#e4f4ea] px-3.5 py-2.5 text-xs font-semibold text-[#2b8a68] transition hover:bg-[#d8efe1]"
+              >
+                <span className="flex size-7 items-center justify-center rounded-full bg-[#2b8a68] text-white">
+                  <Phone className="size-3.5" />
+                </span>
+                <span>CALL: {slide.callNumber}</span>
+              </a>
+            ) : null}
+          </article>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MultiImageSlide({ slide }: { slide: StorefrontHeroSlide }) {
   const images = slide.gridImages;
   const lastRowStart = images.length - (images.length % 2 === 0 ? 2 : 1);
@@ -379,6 +494,9 @@ function MultiImageSlide({ slide }: { slide: StorefrontHeroSlide }) {
 }
 
 function HeroSlideView({ slide, priority }: { slide: StorefrontHeroSlide; priority?: boolean }) {
+  if (slide.layoutType === "DOCTOR_BANNER") {
+    return <DoctorBannerSlide slide={slide} priority={priority} />;
+  }
   if (slide.layoutType === "FULL_WIDTH") {
     return <FullWidthSlide slide={slide} priority={priority} />;
   }
@@ -428,7 +546,12 @@ function HeroCarousel({ slides }: { slides: StorefrontHeroSlide[] }) {
       <Carousel setApi={setApi} opts={{ loop: true, align: "start" }} className="w-full">
         <CarouselContent className="-ml-0">
           {slides.map((slide, index) => (
-            <CarouselItem key={slide.id} className={`pl-0 basis-full ${HERO_FRAME}`}>
+            <CarouselItem
+              key={slide.id}
+              className={`pl-0 basis-full ${
+                slide.layoutType === "DOCTOR_BANNER" ? "min-h-screen" : HERO_FRAME
+              }`}
+            >
               <HeroSlideView slide={slide} priority={index === 0} />
             </CarouselItem>
           ))}

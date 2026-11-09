@@ -80,9 +80,9 @@
   --popover-foreground: #17232d;
 
   /* Primary - Healthcare Teal */
-  --primary: #168b9a;
+  --primary: #168b91;
   --primary-foreground: #ffffff;
-  --primary-hover: #127b8a;
+  --primary-hover: #126779;
 
   /* Secondary - Deep Medical Blue */
   --secondary: #123d67;
@@ -92,11 +92,11 @@
   --muted: #f1f5f6;
   --muted-foreground: #64717d;
 
-  /* Accent - Healthcare Green */
-  --accent: #2b8a68;
-  --accent-foreground: #ffffff;
+  /* Accent - subtle hover/surface (used by outline/ghost buttons, selects, etc.) */
+  --accent: #e9f4f5;
+  --accent-foreground: #123d67;
 
-  --destructive: #b42318;
+  --destructive: #ee1f11;
 
   --border: #dce7ef;
   --input: #dce7ef;
@@ -151,10 +151,10 @@
   --muted: #1d303b;
   --muted-foreground: #a5b5c2;
 
-  --accent: #3ca47e;
-  --accent-foreground: #ffffff;
+  --accent: #1d303b;
+  --accent-foreground: #f3f7fa;
 
-  --destructive: #e05a4f;
+  --destructive: #ed2715;
 
   --border: rgb(255 255 255 / 12%);
   --input: rgb(255 255 255 / 15%);

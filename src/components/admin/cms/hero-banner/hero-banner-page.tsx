@@ -95,7 +95,6 @@ export function HeroBannerPage() {
           <HeroBannerSkeleton />
         ) : (
           <HeroBannerForm
-           
             values={values}
             errors={errors}
             onChange={setValues}

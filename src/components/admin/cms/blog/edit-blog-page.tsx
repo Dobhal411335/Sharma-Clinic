@@ -62,22 +62,22 @@ function createEmptyEditValues(): BlogEditFormValues {
 
 function dtoToEditValues(blog: BlogDto): BlogEditFormValues {
   return {
-    badgeText: blog.badgeText,
-    stat1Number: blog.stat1Number,
-    stat1Name: blog.stat1Name,
-    stat1Text: blog.stat1Text,
-    stat2Number: blog.stat2Number,
-    stat2Name: blog.stat2Name,
-    stat2Text: blog.stat2Text,
-    title: blog.title || blog.name,
+    badgeText: blog.badgeText ?? "",
+    stat1Number: blog.stat1Number ?? "",
+    stat1Name: blog.stat1Name ?? "",
+    stat1Text: blog.stat1Text ?? "",
+    stat2Number: blog.stat2Number ?? "",
+    stat2Name: blog.stat2Name ?? "",
+    stat2Text: blog.stat2Text ?? "",
+    title: blog.title || blog.name || "",
     publishedAt: toDateInputValue(blog.publishedAt),
-    createdBy: blog.createdBy,
-    imageUrl: blog.imageUrl,
-    imagePublicId: blog.imagePublicId,
-    description: blog.description,
-    blockquote: blog.blockquote,
+    createdBy: blog.createdBy ?? "",
+    imageUrl: blog.imageUrl ?? "",
+    imagePublicId: blog.imagePublicId ?? "",
+    description: blog.description ?? "",
+    blockquote: blog.blockquote ?? "",
     accordionItems: normalizeAccordionItems(blog.accordionItems),
-    active: blog.active,
+    active: blog.active ?? true,
   };
 }
 
@@ -232,7 +232,9 @@ export function EditBlogPage({
 
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="blog-date">Date</Label>
+                    <Label htmlFor="blog-date">
+                      Date <span className="font-normal text-muted-foreground">(optional)</span>
+                    </Label>
                     <Input
                       id="blog-date"
                       type="date"
@@ -252,7 +254,10 @@ export function EditBlogPage({
                     ) : null}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="blog-created-by">Created by</Label>
+                    <Label htmlFor="blog-created-by">
+                      Created by{" "}
+                      <span className="font-normal text-muted-foreground">(optional)</span>
+                    </Label>
                     <Input
                       id="blog-created-by"
                       value={values.createdBy}

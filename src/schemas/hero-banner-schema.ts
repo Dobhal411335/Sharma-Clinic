@@ -50,6 +50,34 @@ function validateSlide(
     return null;
   }
 
+  if (slide.layoutType === "DOCTOR_BANNER") {
+    if (!slide.desktopImage.url.trim() || !isHttpUrl(slide.desktopImage.url)) {
+      return `${label}: background image is required`;
+    }
+    if (!slide.mainHeading.trim()) {
+      return `${label}: main heading is required`;
+    }
+    if (slide.mainHeading.trim().length > 300) {
+      return `${label}: main heading must be 300 characters or fewer`;
+    }
+    if (!slide.buttonLabel.trim()) {
+      return `${label}: button label is required`;
+    }
+    if (!isOptionalUrl(slide.buttonUrl)) {
+      return `${label}: invalid button URL`;
+    }
+    if (!slide.leftImage.url.trim() || !isHttpUrl(slide.leftImage.url)) {
+      return `${label}: card 2 image is required`;
+    }
+    if (!slide.secondaryHeading.trim()) {
+      return `${label}: card 3 heading is required`;
+    }
+    if (!slide.callNumber.trim()) {
+      return `${label}: call number is required`;
+    }
+    return null;
+  }
+
   if (!slide.mainHeading.trim()) {
     return `${label}: main heading is required`;
   }
@@ -124,33 +152,42 @@ export function toHeroBannerPayload(
     slides: values.slides.map((slide, index) => {
       const isFullWidth = slide.layoutType === "FULL_WIDTH";
       const isSplit = slide.layoutType === "SPLIT_DUAL";
+      const isDoctor = slide.layoutType === "DOCTOR_BANNER";
       const hasSecondaryButton = isSplit || slide.layoutType === "MULTI_IMAGE";
       const isMulti = slide.layoutType === "MULTI_IMAGE";
+      const keepsCopy = !isFullWidth;
 
       return {
         layoutType: slide.layoutType,
         order: Number.isFinite(slide.order) ? slide.order : index,
         active: slide.active,
-        mobileImageUrl: isFullWidth ? slide.mobileImage.url.trim() : "",
-        mobileImagePublicId: isFullWidth ? slide.mobileImage.publicId.trim() : "",
-        desktopImageUrl: isFullWidth ? slide.desktopImage.url.trim() : "",
-        desktopImagePublicId: isFullWidth
-          ? slide.desktopImage.publicId.trim()
-          : "",
-        miniHeading: isFullWidth ? "" : slide.miniHeading.trim(),
-        mainHeading: isFullWidth ? "" : slide.mainHeading.trim(),
-        description: isFullWidth ? "" : slide.description.trim(),
-        buttonLabel: isFullWidth ? "" : slide.buttonLabel.trim(),
+        mobileImageUrl:
+          isFullWidth || isDoctor ? slide.mobileImage.url.trim() : "",
+        mobileImagePublicId:
+          isFullWidth || isDoctor ? slide.mobileImage.publicId.trim() : "",
+        desktopImageUrl:
+          isFullWidth || isDoctor ? slide.desktopImage.url.trim() : "",
+        desktopImagePublicId:
+          isFullWidth || isDoctor ? slide.desktopImage.publicId.trim() : "",
+        miniHeading: keepsCopy ? slide.miniHeading.trim() : "",
+        mainHeading: keepsCopy ? slide.mainHeading.trim() : "",
+        description: keepsCopy ? slide.description.trim() : "",
+        buttonLabel: keepsCopy ? slide.buttonLabel.trim() : "",
         // FULL_WIDTH stores the banner image click destination in buttonUrl.
         buttonUrl: slide.buttonUrl.trim(),
         button2Label: hasSecondaryButton ? slide.button2Label.trim() : "",
         button2Url: hasSecondaryButton ? slide.button2Url.trim() : "",
-        leftImageUrl: isSplit ? slide.leftImage.url.trim() : "",
-        leftImagePublicId: isSplit ? slide.leftImage.publicId.trim() : "",
+        leftImageUrl:
+          isSplit || isDoctor ? slide.leftImage.url.trim() : "",
+        leftImagePublicId:
+          isSplit || isDoctor ? slide.leftImage.publicId.trim() : "",
         leftImageClickUrl: isSplit ? slide.leftImageClickUrl.trim() : "",
         rightImageUrl: isSplit ? slide.rightImage.url.trim() : "",
         rightImagePublicId: isSplit ? slide.rightImage.publicId.trim() : "",
         rightImageClickUrl: isSplit ? slide.rightImageClickUrl.trim() : "",
+        secondaryHeading: isDoctor ? slide.secondaryHeading.trim() : "",
+        secondaryDescription: isDoctor ? slide.secondaryDescription.trim() : "",
+        callNumber: isDoctor ? slide.callNumber.trim() : "",
         gridImages: isMulti
           ? slide.gridImages
               .filter((image) => image.image.url.trim())

@@ -166,10 +166,10 @@ export const adminNav: AdminNavItem[] = [
         description: "Add a doctor profile.",
       },
       {
-        title: "Manage Doctor Login",
+        title: "Manage Doctors",
         href: "/admin/doctors/logins",
         icon: "key-round",
-        description: "Doctor sign-in accounts.",
+        description: "Approve pending doctor logins and send credentials.",
       },
       {
         title: "Manage Doctor Profile Page",

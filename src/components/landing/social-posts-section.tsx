@@ -96,7 +96,7 @@ export function SocialPostsSection({ posts }: SocialPostsSectionProps) {
               const Icon = isFacebook ? FacebookIcon : InstagramIcon;
 
               // Refined column width: always use column sizing for cards (never full width for 3)
-              let cardBasis = "basis-full";
+              let cardBasis = "basis-1/4";
               if (posts.length === 2) {
                 cardBasis = "basis-1/4";
               } else if (posts.length === 3) {

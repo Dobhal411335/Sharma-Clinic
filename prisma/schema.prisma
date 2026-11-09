@@ -18,6 +18,13 @@ enum Role {
   DOCTOR
 }
 
+/// Staff account approval lifecycle for doctor login provisioning.
+enum StaffApprovalStatus {
+  PENDING_APPROVAL
+  APPROVED
+  DISABLED
+}
+
 enum AppointmentStatus {
   PENDING_PAYMENT
   CONFIRMED
@@ -126,17 +133,24 @@ enum NotificationOutboxStatus {
 
 /// Staff identity only. No customer/patient accounts in the initial release.
 model User {
-  id              String    @id @default(cuid())
-  name            String?
+  id                     String              @id @default(cuid())
+  name                   String?
   /// Normalize to lowercase trim in application / seed before write.
-  email           String    @unique
-  passwordHash    String
-  role            Role      @default(DOCTOR)
-  isActive        Boolean   @default(true)
-  emailVerifiedAt DateTime?
-  lastLoginAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  email                  String              @unique
+  passwordHash           String
+  role                   Role                @default(DOCTOR)
+  isActive               Boolean             @default(true)
+  approvalStatus         StaffApprovalStatus @default(APPROVED)
+  phone                  String?
+  /// Plainstring passcode for doctor quick login. Never hash (product requirement).
+  passcode               String?             @unique
+  /// Plaintext password only while PENDING_APPROVAL; cleared after approve hashes it.
+  pendingPassword        String?
+  credentialsEmailSentAt DateTime?
+  emailVerifiedAt        DateTime?
+  lastLoginAt            DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
 
   doctor             Doctor?
   auditLogs          AuditLog[]           @relation("AuditLogActor")
@@ -147,7 +161,24 @@ model User {
 
   @@index([role])
   @@index([isActive])
+  @@index([approvalStatus])
   @@map("users")
+}
+
+/// Short-lived OTP for verifying a doctor email before account create.
+model DoctorEmailVerification {
+  id        String   @id @default(cuid())
+  email     String
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+  @@map("doctor_email_verifications")
 }
 
 // ─── Doctors / Specialties ───────────────────────────────────────────────────

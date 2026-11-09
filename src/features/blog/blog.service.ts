@@ -146,7 +146,8 @@ function mapCard(row: ApiBlogCard): StorefrontBlogCard {
   };
 }
 
-export function formatBlogDate(value: string): string {
+export function formatBlogDate(value: string | undefined | null): string {
+  if (!value?.trim()) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;

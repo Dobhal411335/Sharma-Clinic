@@ -17,6 +17,9 @@ export type DoctorProfile = {
   photoUrl: string;
   active: boolean;
   order: number;
+  /** Linked Prisma Doctor id when provisioned via staff login flow. */
+  staffDoctorId?: string | null;
+  staffUserId?: string | null;
 };
 
 /** Distinct filter options from active doctors on the site. */
@@ -65,6 +68,25 @@ export type DoctorAppointmentCreatePayload = {
   medicalHistoryImagePublicId?: string;
   website?: string;
 };
+
+/**
+ * URL slug derived from a doctor display name (no stored slug field yet).
+ */
+export function doctorProfileSlug(rawName: string): string {
+  const trimmed = String(rawName || "").trim().replace(/\s+/g, " ");
+  const withoutTitle = trimmed
+    .replace(
+      /^(Prof\.\s*Dr\.?|Assoc\.\s*Prof\.?\s*Dr\.?|Assoc\.\s*Prof\.?|Prof\.?|Surgeon\.?|MD\.?|Dr\.?)\s+/i,
+      "",
+    )
+    .trim();
+  const slug = (withoutTitle || trimmed)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 160);
+  return slug || "doctor";
+}
 
 /**
  * Formats doctor display name to guarantee both title prefix (with a trailing dot)

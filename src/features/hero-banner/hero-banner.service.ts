@@ -45,6 +45,13 @@ function isRenderableStorefrontSlide(slide: HeroBannerConfig["slides"][number]):
     );
   }
 
+  if (slide.layoutType === "DOCTOR_BANNER") {
+    return Boolean(
+      slide.mainHeading.trim() &&
+        (slide.desktopImageUrl.trim() || slide.mobileImageUrl.trim()),
+    );
+  }
+
   return (
     Boolean(slide.mainHeading.trim()) &&
     (slide.gridImages || []).filter((image) => image.imageUrl.trim()).length >= 4
@@ -71,6 +78,9 @@ export function mapHeroBannerConfigToStorefront(config: HeroBannerConfig): Store
     leftImageClickUrl: optionalHref(slide.leftImageClickUrl, ""),
     rightImageUrl: preferHttps(slide.rightImageUrl.trim()),
     rightImageClickUrl: optionalHref(slide.rightImageClickUrl, ""),
+    secondaryHeading: (slide.secondaryHeading ?? "").trim(),
+    secondaryDescription: (slide.secondaryDescription ?? "").trim(),
+    callNumber: (slide.callNumber ?? "").trim(),
     gridImages: (slide.gridImages || []).map((image) => ({
       id: image.id,
       src: preferHttps(image.imageUrl.trim()),

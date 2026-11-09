@@ -23,6 +23,7 @@ const EMPTY_FILTERS: DoctorSearchFilters = {
   speciality: "",
   state: "",
   city: "",
+  location: "",
 };
 
 function normalizeFilters(filters: DoctorSearchFilters): DoctorSearchFilters {
@@ -31,6 +32,7 @@ function normalizeFilters(filters: DoctorSearchFilters): DoctorSearchFilters {
     speciality: filters.speciality.trim(),
     state: filters.state.trim(),
     city: filters.city.trim(),
+    location: filters.location.trim(),
   };
 }
 
@@ -40,15 +42,22 @@ function hasFilters(filters: DoctorSearchFilters): boolean {
     normalized.name ||
       normalized.speciality ||
       normalized.state ||
-      normalized.city,
+      normalized.city ||
+      normalized.location,
   );
+}
+
+function locationSearchText(doctor: DoctorProfile): string {
+  return [doctor.location, doctor.city, doctor.state]
+    .join(" ")
+    .toLowerCase();
 }
 
 function matchesDoctor(
   doctor: DoctorProfile,
   filters: DoctorSearchFilters,
 ): boolean {
-  const { name, speciality, city, state } = normalizeFilters(filters);
+  const { name, speciality, city, state, location } = normalizeFilters(filters);
 
   if (name && !profileSearchText(doctor).includes(name.toLowerCase())) {
     return false;
@@ -65,6 +74,9 @@ function matchesDoctor(
     return false;
   }
   if (city && doctor.city.toLowerCase() !== city.toLowerCase()) {
+    return false;
+  }
+  if (location && !locationSearchText(doctor).includes(location.toLowerCase())) {
     return false;
   }
 
@@ -133,6 +145,7 @@ function profileSearchText(doctor: DoctorProfile): string {
 function formatFilterSummary(filters: DoctorSearchFilters): string {
   const parts = [
     filters.name.trim() || null,
+    filters.location.trim() || null,
     filters.speciality.trim() || null,
     filters.city.trim() || null,
     filters.state.trim() || null,
@@ -167,6 +180,7 @@ export function DoctorsDirectory({ doctors, facets }: DoctorsDirectoryProps) {
     const normalized = normalizeFilters(nextFilters);
     setDraft({
       name: nextFilters.name,
+      location: nextFilters.location,
       speciality: normalized.speciality,
       state: normalized.state,
       city: normalized.city,
@@ -213,33 +227,10 @@ export function DoctorsDirectory({ doctors, facets }: DoctorsDirectoryProps) {
       />
       <DoctorsGridSection
         doctors={filteredDoctors}
-        allDoctors={doctors}
         isLoading={showSkeleton}
         hasActiveFilter={hasActiveFilter}
         searchQuery={formatFilterSummary(applied)}
         onResetFilter={handleReset}
-        onApplyProfileFilter={(partial) => {
-          const next = { ...draft, ...partial };
-          if (partial.speciality) {
-            next.speciality =
-              liveFacets.specialities.find(
-                (item) => item.toLowerCase() === partial.speciality?.toLowerCase(),
-              ) ?? partial.speciality;
-          }
-          if (partial.state) {
-            next.state =
-              liveFacets.states.find(
-                (item) => item.toLowerCase() === partial.state?.toLowerCase(),
-              ) ?? partial.state;
-          }
-          if (partial.city) {
-            const cities = liveFacets.citiesByState[next.state] ?? [];
-            next.city =
-              cities.find((item) => item.toLowerCase() === partial.city?.toLowerCase()) ??
-              partial.city;
-          }
-          runSearch(next);
-        }}
       />
     </>
   );

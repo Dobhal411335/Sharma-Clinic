@@ -1,4 +1,8 @@
-export type HeroBannerLayoutType = "FULL_WIDTH" | "SPLIT_DUAL" | "MULTI_IMAGE";
+export type HeroBannerLayoutType =
+  | "FULL_WIDTH"
+  | "SPLIT_DUAL"
+  | "MULTI_IMAGE"
+  | "DOCTOR_BANNER";
 
 export type HeroBannerGridImage = {
   id: string;
@@ -31,6 +35,9 @@ export type HeroBannerSlide = {
   rightImageUrl: string;
   rightImagePublicId: string;
   rightImageClickUrl?: string;
+  secondaryHeading?: string;
+  secondaryDescription?: string;
+  callNumber?: string;
   gridImages: HeroBannerGridImage[];
 };
 
@@ -55,5 +62,8 @@ export type StorefrontHeroSlide = {
   leftImageClickUrl: string;
   rightImageUrl: string;
   rightImageClickUrl: string;
+  secondaryHeading: string;
+  secondaryDescription: string;
+  callNumber: string;
   gridImages: Array<{ id: string; src: string; alt: string; clickUrl: string }>;
 };

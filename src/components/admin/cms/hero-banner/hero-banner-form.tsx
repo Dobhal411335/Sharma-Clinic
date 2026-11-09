@@ -239,7 +239,7 @@ export function HeroBannerForm({
   onSubmit,
   formId = "hero-banner-form",
 }: HeroBannerFormProps) {
-  const [activeTab, setActiveTab] = useState<HeroBannerLayoutType>("FULL_WIDTH");
+  const [activeTab, setActiveTab] = useState<HeroBannerLayoutType>("DOCTOR_BANNER");
   const [uploadingKey, setUploadingKey] = useState("");
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -404,13 +404,202 @@ export function HeroBannerForm({
                 </div>
               </div>
 
-              {activeTab !== "FULL_WIDTH" ? (
+              {activeTab !== "FULL_WIDTH" && activeTab !== "DOCTOR_BANNER" ? (
                 <CopyFields
                   slide={slide}
                   index={index}
                   activeTab={activeTab}
                   updateSlide={updateSlide}
                 />
+              ) : null}
+
+              {activeTab === "DOCTOR_BANNER" ? (
+                <div className="space-y-6">
+                  <ImageField
+                    label="Background image"
+                    value={slide.desktopImage}
+                    uploading={uploadingKey === `${slide.clientKey}-desktop`}
+                    onPick={() =>
+                      fileRefs.current[`${slide.clientKey}-desktop`]?.click()
+                    }
+                    onClear={() =>
+                      updateSlide(index, {
+                        desktopImage: { url: "", publicId: "" },
+                        mobileImage: { url: "", publicId: "" },
+                      })
+                    }
+                    inputRef={(node) => {
+                      fileRefs.current[`${slide.clientKey}-desktop`] = node;
+                      if (node) {
+                        node.onchange = () => {
+                          void handleUpload(
+                            `${slide.clientKey}-desktop`,
+                            node.files?.[0],
+                            (uploaded) =>
+                              updateSlide(index, {
+                                desktopImage: {
+                                  url: uploaded.url,
+                                  publicId: uploaded.publicId,
+                                },
+                                mobileImage: {
+                                  url: uploaded.url,
+                                  publicId: uploaded.publicId,
+                                },
+                              }),
+                          );
+                          node.value = "";
+                        };
+                      }
+                    }}
+                  />
+
+                  <div className="space-y-4 rounded-xl border border-border/80 bg-muted/10 p-4">
+                    <p className="text-sm font-semibold">Card 1 · Headline</p>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor={`mini-${slide.clientKey}`}>Mini heading</Label>
+                        <Input
+                          id={`mini-${slide.clientKey}`}
+                          value={slide.miniHeading}
+                          onChange={(event) =>
+                            updateSlide(index, { miniHeading: event.target.value })
+                          }
+                          placeholder="Small line above the title"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`main-${slide.clientKey}`}>Main heading</Label>
+                        <Input
+                          id={`main-${slide.clientKey}`}
+                          value={slide.mainHeading}
+                          onChange={(event) =>
+                            updateSlide(index, { mainHeading: event.target.value })
+                          }
+                          placeholder="Primary headline"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`desc-${slide.clientKey}`}>Sub description</Label>
+                      <Textarea
+                        id={`desc-${slide.clientKey}`}
+                        value={slide.description}
+                        onChange={(event) =>
+                          updateSlide(index, { description: event.target.value })
+                        }
+                        rows={3}
+                        placeholder="Supporting copy for the headline card"
+                      />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor={`btn1-${slide.clientKey}`}>Button label</Label>
+                        <Input
+                          id={`btn1-${slide.clientKey}`}
+                          value={slide.buttonLabel}
+                          onChange={(event) =>
+                            updateSlide(index, { buttonLabel: event.target.value })
+                          }
+                          placeholder="Learn More"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`btn1url-${slide.clientKey}`}>Button URL</Label>
+                        <Input
+                          id={`btn1url-${slide.clientKey}`}
+                          value={slide.buttonUrl}
+                          onChange={(event) =>
+                            updateSlide(index, { buttonUrl: event.target.value })
+                          }
+                          placeholder="/doctors or https://…"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 rounded-xl border border-border/80 bg-muted/10 p-4">
+                    <p className="text-sm font-semibold">Card 2 · Image</p>
+                    <ImageField
+                      label="Card image"
+                      value={slide.leftImage}
+                      uploading={uploadingKey === `${slide.clientKey}-left`}
+                      onPick={() =>
+                        fileRefs.current[`${slide.clientKey}-left`]?.click()
+                      }
+                      onClear={() =>
+                        updateSlide(index, {
+                          leftImage: { url: "", publicId: "" },
+                        })
+                      }
+                      inputRef={(node) => {
+                        fileRefs.current[`${slide.clientKey}-left`] = node;
+                        if (node) {
+                          node.onchange = () => {
+                            void handleUpload(
+                              `${slide.clientKey}-left`,
+                              node.files?.[0],
+                              (uploaded) =>
+                                updateSlide(index, {
+                                  leftImage: {
+                                    url: uploaded.url,
+                                    publicId: uploaded.publicId,
+                                  },
+                                }),
+                            );
+                            node.value = "";
+                          };
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-4 rounded-xl border border-border/80 bg-muted/10 p-4">
+                    <p className="text-sm font-semibold">Card 3 · Welcome / Call</p>
+                    <div className="space-y-2">
+                      <Label htmlFor={`sec-heading-${slide.clientKey}`}>
+                        Heading
+                      </Label>
+                      <Input
+                        id={`sec-heading-${slide.clientKey}`}
+                        value={slide.secondaryHeading}
+                        onChange={(event) =>
+                          updateSlide(index, {
+                            secondaryHeading: event.target.value,
+                          })
+                        }
+                        placeholder="Welcome heading"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`sec-desc-${slide.clientKey}`}>
+                        Sub description
+                      </Label>
+                      <Textarea
+                        id={`sec-desc-${slide.clientKey}`}
+                        value={slide.secondaryDescription}
+                        onChange={(event) =>
+                          updateSlide(index, {
+                            secondaryDescription: event.target.value,
+                          })
+                        }
+                        rows={3}
+                        placeholder="Short welcome copy"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`call-${slide.clientKey}`}>Call number</Label>
+                      <Input
+                        id={`call-${slide.clientKey}`}
+                        value={slide.callNumber}
+                        onChange={(event) =>
+                          updateSlide(index, { callNumber: event.target.value })
+                        }
+                        placeholder="+011 3253 4567"
+                      />
+                    </div>
+                  </div>
+                </div>
               ) : null}
 
               {activeTab === "FULL_WIDTH" ? (

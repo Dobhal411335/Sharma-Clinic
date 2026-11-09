@@ -52,6 +52,9 @@ export const pageSeo = {
     title: "Doctors",
     description: "Meet our clinicians and explore specialist services.",
   },
+  doctorNotFound: {
+    title: "Doctor not found",
+  },
   faq: {
     title: "FAQs",
     description: "Frequently asked questions about visits, services, and support.",

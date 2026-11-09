@@ -3,7 +3,15 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Loader2, Mail, MapPin, Phone } from "lucide-react";
+import {
+  AtSign,
+  Loader2,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  PhoneCall,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,71 +181,140 @@ export function SiteFooter() {
   const columns = managedFooter.columns;
   const thankYou = managedFooter.thankYou || footer.thankYou;
   const description = managedFooter.description || footer.description;
+  const primaryPhone = phones[0] ?? "";
+  const primaryPhoneHref = primaryPhone
+    ? `tel:+91${String(primaryPhone).replace(/\D/g, "")}`
+    : "/contact";
+  const primaryEmail = emails[0] ?? "";
+  const messageHref = primaryEmail ? `mailto:${primaryEmail}` : "/contact";
 
   return (
     <footer className="mt-auto border-t border-border bg-surface">
-      <div className="container-page grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-5 lg:gap-8">
-        <div>
-          <h2 className="mb-4 text-base font-semibold text-foreground">
-            Contact Us
-          </h2>
-          <ul className="space-y-3 text-sm text-muted-foreground">
-            {addresses.map((text) => (
-              <li key={text} className="flex items-start gap-2.5">
-                <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden />
-                <span>{text}</span>
-              </li>
-            ))}
-            {phones.map((number) => (
-              <li key={number} className="flex items-start gap-2.5">
-                <Phone className="mt-0.5 size-4 shrink-0" aria-hidden />
-                <a
-                  href={`tel:+91${String(number).replace(/\D/g, "")}`}
-                  className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {formatPhone(number)}
-                </a>
-              </li>
-            ))}
-            {emails.map((email) => (
-              <li key={email} className="flex items-start gap-2.5">
-                <Mail className="mt-0.5 size-4 shrink-0" aria-hidden />
-                <a
-                  href={`mailto:${email}`}
-                  className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {email}
-                </a>
-              </li>
-            ))}
-            {/* {hours.map((text) => (
-              <li key={text} className="flex items-start gap-2.5">
-                <Clock className="mt-0.5 size-4 shrink-0" aria-hidden />
-                <span>{text}</span>
-              </li>
-            ))} */}
-          </ul>
-        </div>
-
-        {columns.map((column) => (
-          <div key={column.title}>
+      <div className="container-page grid gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start lg:gap-12">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+          <div>
             <h2 className="mb-4 text-base font-semibold text-foreground">
-              {column.title}
+              Contact Us
             </h2>
-            <ul className="space-y-2.5 text-sm">
-              {column.links.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              {addresses.map((text) => (
+                <li key={text} className="flex items-start gap-2.5">
+                  <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <span>{text}</span>
+                </li>
+              ))}
+              {phones.map((number) => (
+                <li key={number} className="flex items-start gap-2.5">
+                  <Phone className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <a
+                    href={`tel:+91${String(number).replace(/\D/g, "")}`}
+                    className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    {link.label}
-                  </Link>
+                    {formatPhone(number)}
+                  </a>
+                </li>
+              ))}
+              {emails.map((email) => (
+                <li key={email} className="flex items-start gap-2.5">
+                  <Mail className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  <a
+                    href={`mailto:${email}`}
+                    className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {email}
+                  </a>
                 </li>
               ))}
             </ul>
           </div>
-        ))}
+
+          {columns.map((column) => (
+            <div key={column.title}>
+              <h2 className="mb-4 text-base font-semibold text-foreground">
+                {column.title}
+              </h2>
+              <ul className="space-y-2.5 text-sm">
+                {column.links.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <aside className="rounded bg-white p-6">
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-8">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">
+              Start a conversation with our team.
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              We are here to provide the support and guidance you need, ensuring
+              every question is answered with care to help you feel confident
+              throughout your treatment.
+            </p>
+          </div>
+
+          <ul className="mt-6 grid gap-4 sm:grid-cols-3">
+            <li>
+              <a
+                href={messageHref}
+                className="flex h-full flex-col rounded border border-[#e6e2db] bg-white p-5 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex size-11 items-center justify-center rounded-lg bg-[#f5f0e8] text-foreground">
+                  <AtSign className="size-5" aria-hidden />
+                </span>
+                <span className="mt-4 block text-base font-semibold text-foreground">
+                  Message us
+                </span>
+                <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">
+                  Send our dedicated team a secure message, and we will get back
+                  to you very promptly.
+                </span>
+              </a>
+            </li>
+            <li>
+              <Link
+                href="/contact"
+                className="flex h-full flex-col rounded border border-[#e6e2db] bg-white p-5 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex size-11 items-center justify-center rounded-lg bg-[#f5f0e8] text-foreground">
+                  <MessageCircle className="size-5" aria-hidden />
+                </span>
+                <span className="mt-4 block text-base font-semibold text-foreground">
+                  Chat
+                </span>
+                <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">
+                  Connect with a friendly team member right now for instant
+                  answers to all your important questions.
+                </span>
+              </Link>
+            </li>
+            <li>
+              <a
+                href={primaryPhoneHref}
+                className="flex h-full flex-col rounded border border-[#e6e2db] bg-white p-5 transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex size-11 items-center justify-center rounded-lg bg-[#f5f0e8] text-foreground">
+                  <PhoneCall className="size-5" aria-hidden />
+                </span>
+                <span className="mt-4 block text-base font-semibold text-foreground">
+                  Book a call
+                </span>
+                <span className="mt-2 block text-sm leading-relaxed text-muted-foreground">
+                  Schedule a convenient time for a private, professional
+                  discussion with one of our experienced medical experts.
+                </span>
+              </a>
+            </li>
+          </ul>
+        </aside>
       </div>
 
       <Separator />

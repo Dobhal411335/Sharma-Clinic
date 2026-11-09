@@ -15,6 +15,19 @@ function createPrismaClient(): PrismaClient {
   return new PrismaClient({ adapter });
 }
 
+function isStalePrismaClient(client: PrismaClient): boolean {
+  // After schema changes, Next.js can keep an old global client without new models.
+  const delegate = (client as unknown as Record<string, { findFirst?: unknown }>)
+    .doctorEmailVerification;
+  return typeof delegate?.findFirst !== "function";
+}
+
+const existing = globalForPrisma.prisma;
+if (existing && isStalePrismaClient(existing)) {
+  void existing.$disconnect().catch(() => undefined);
+  globalForPrisma.prisma = undefined;
+}
+
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {

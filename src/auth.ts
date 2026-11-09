@@ -28,19 +28,80 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        passcode: { label: "Passcode", type: "text" },
+        loginMethod: { label: "Login method", type: "text" },
         role: { label: "Role", type: "text" },
       },
       async authorize(credentials, request) {
-        const email = readString(credentials?.email).toLowerCase();
-        const password = typeof credentials?.password === "string" ? credentials.password : "";
         const role = readRole(credentials?.role);
-        if (!email || !password || !role) return null;
+        if (!role) return null;
 
-        const emailKey = `login:email:${email}`;
+        const loginMethod = readString(credentials?.loginMethod) || "password";
         const ipKey = `login:ip:${clientAddress(request)}`;
 
         try {
-          if ((await isLoginLocked(emailKey)) || (await isLoginLocked(ipKey))) {
+          if (await isLoginLocked(ipKey)) {
+            return null;
+          }
+
+          if (loginMethod === "passcode") {
+            if (role !== "DOCTOR") return null;
+            const passcode = readString(credentials?.passcode);
+            if (!passcode) return null;
+
+            const passcodeKey = `login:passcode:${passcode}`;
+            if (await isLoginLocked(passcodeKey)) {
+              return null;
+            }
+
+            const user = await prisma.user.findUnique({
+              where: { passcode },
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                isActive: true,
+                approvalStatus: true,
+                doctor: { select: { id: true } },
+              },
+            });
+
+            const ok =
+              Boolean(user) &&
+              user!.isActive &&
+              user!.approvalStatus === "APPROVED" &&
+              user!.role === "DOCTOR";
+
+            if (!ok) {
+              await recordLoginFailure(passcodeKey);
+              await recordLoginFailure(ipKey);
+              return null;
+            }
+
+            await clearLoginFailures(passcodeKey);
+            await clearLoginFailures(ipKey);
+            await prisma.user.update({
+              where: { id: user!.id },
+              data: { lastLoginAt: new Date() },
+            });
+
+            return {
+              id: user!.id,
+              email: user!.email,
+              name: user!.name,
+              role: user!.role,
+              doctorId: user!.doctor?.id ?? null,
+            };
+          }
+
+          const email = readString(credentials?.email).toLowerCase();
+          const password =
+            typeof credentials?.password === "string" ? credentials.password : "";
+          if (!email || !password) return null;
+
+          const emailKey = `login:email:${email}`;
+          if (await isLoginLocked(emailKey)) {
             return null;
           }
 
@@ -53,6 +114,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               passwordHash: true,
               role: true,
               isActive: true,
+              approvalStatus: true,
               doctor: { select: { id: true } },
             },
           });
@@ -61,13 +123,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? await verifyPassword(password, user.passwordHash)
             : false;
 
-          if (!user || !user.isActive || user.role !== role || !passwordOk) {
+          if (
+            !user ||
+            !user.isActive ||
+            user.approvalStatus !== "APPROVED" ||
+            user.role !== role ||
+            !passwordOk
+          ) {
             await recordLoginFailure(emailKey);
             await recordLoginFailure(ipKey);
             return null;
           }
 
           await clearLoginFailures(emailKey);
+          await clearLoginFailures(ipKey);
           await prisma.user.update({
             where: { id: user.id },
             data: { lastLoginAt: new Date() },
@@ -101,7 +170,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (token.role === "ADMIN" || token.role === "DOCTOR") {
           session.user.role = token.role;
         }
-        session.user.doctorId = typeof token.doctorId === "string" ? token.doctorId : null;
+        session.user.doctorId =
+          typeof token.doctorId === "string" ? token.doctorId : null;
       }
       return session;
     },

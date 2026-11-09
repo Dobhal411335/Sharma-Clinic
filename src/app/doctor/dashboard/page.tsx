@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { auth, signOut } from "@/auth";
 
 export default async function DoctorDashboardPage() {
@@ -11,22 +13,30 @@ export default async function DoctorDashboardPage() {
         {session?.user?.doctorId
           ? ` · doctor profile ${session.user.doctorId}`
           : ""}
-        . Full doctor tools will land in a later task.
+        .
       </p>
-      <form
-        className="mt-6"
-        action={async () => {
-          "use server";
-          await signOut({ redirectTo: "/login" });
-        }}
-      >
-        <button
-          type="submit"
-          className="rounded-md border border-[#d9e5ea] bg-white px-4 py-2 text-sm font-medium text-[#102a43] hover:bg-[#f8fbfc]"
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          href="/doctor/profile"
+          className="rounded-md bg-[#146c94] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f5675]"
         >
-          Sign out
-        </button>
-      </form>
+          Manage profile & schedule
+        </Link>
+        <form
+          action={async () => {
+            "use server";
+            await signOut({ redirectTo: "/login" });
+          }}
+        >
+          <button
+            type="submit"
+            className="rounded-md border border-[#d9e5ea] bg-white px-4 py-2 text-sm font-medium text-[#102a43] hover:bg-[#f8fbfc]"
+          >
+            Sign out
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

@@ -6,6 +6,8 @@ import {
 } from "@/components/ui/accordion";
 import { FALLBACK_LANDING_FAQS } from "@/features/faq/faq.defaults";
 import type { StorefrontFaqItem } from "@/types/faq";
+import { ArrowUpRight } from "lucide-react";
+import Link from "next/link";
 
 type FaqSectionProps = {
   items?: StorefrontFaqItem[];
@@ -28,6 +30,13 @@ export function FaqSection({ items }: FaqSectionProps) {
           <p className="mt-8 max-w-lg text-base leading-relaxed text-[#718087] sm:text-lg">
             Every engagement is different, but these questions help explain how we work.
           </p>
+          <Link
+            href="/faq"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#ef6a24] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#d95e1e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef6a24] focus-visible:ring-offset-2"
+          >
+            View all FAQs
+            <ArrowUpRight className="size-4" />
+          </Link>
         </div>
 
         <div className="min-h-0 lg:pt-1">

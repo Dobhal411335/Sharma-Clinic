@@ -182,7 +182,7 @@ export const blogCreateSchema = z.object({
 export const blogUpdateSchema = blogCreateSchema.extend({
   slug: slugSchema,
   title: z.string().trim().min(1, "Title is required").max(300),
-  publishedAt: z.string().trim().min(1, "Date is required"),
+  publishedAt: z.string().trim().max(40).default(""),
   createdBy: z.string().trim().max(120).default(""),
   imageUrl: z.string().trim().max(2000).default(""),
   imagePublicId: z.string().trim().max(500).default(""),

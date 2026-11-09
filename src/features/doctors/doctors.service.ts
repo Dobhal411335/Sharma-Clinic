@@ -1,9 +1,10 @@
 import { cache } from "react";
 
-import type {
-  DoctorPageConfig,
-  DoctorProfile,
-  DoctorProfileFacets,
+import {
+  doctorProfileSlug,
+  type DoctorPageConfig,
+  type DoctorProfile,
+  type DoctorProfileFacets,
 } from "@/types/doctors";
 
 type ApiSuccess<T> = {
@@ -65,6 +66,14 @@ async function loadDoctorProfiles(): Promise<DoctorProfile[]> {
       degree: item.degree ?? "",
       workHistory: item.workHistory ?? "",
       workDays: item.workDays ?? "",
+      staffDoctorId:
+        typeof (item as { staffDoctorId?: unknown }).staffDoctorId === "string"
+          ? (item as { staffDoctorId: string }).staffDoctorId
+          : null,
+      staffUserId:
+        typeof (item as { staffUserId?: unknown }).staffUserId === "string"
+          ? (item as { staffUserId: string }).staffUserId
+          : null,
     }))
     .filter(
       (item) => item.active && item.name && item.photoUrl && item.specializations.length > 0,
@@ -78,6 +87,21 @@ export const getDoctorProfiles = cache(async (): Promise<DoctorProfile[]> => {
     return [];
   }
 });
+
+/**
+ * Resolve an active doctor by name-derived slug for public profile pages.
+ */
+export const getDoctorBySlug = cache(
+  async (slug: string): Promise<DoctorProfile | null> => {
+    const normalized = slug.trim().toLowerCase();
+    if (!normalized) return null;
+    const doctors = await getDoctorProfiles();
+    return (
+      doctors.find((doctor) => doctorProfileSlug(doctor.name) === normalized) ??
+      null
+    );
+  },
+);
 
 /**
  * Server-side fetch of distinct speciality / state / city filter options.
