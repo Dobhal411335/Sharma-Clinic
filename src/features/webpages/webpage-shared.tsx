@@ -129,7 +129,13 @@ const formatDate = (value) => {
   });
 };
 
-const ImageDotsCarousel = ({ images = [], alt = "" }) => {
+const ImageDotsCarousel = ({
+  images = [],
+  alt = "",
+}: {
+  images?: Array<{ url?: string } | null | undefined>;
+  alt?: string;
+}) => {
   const [api, setApi] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const slides = images.filter((img) => img?.url);

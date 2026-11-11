@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { mapNavbarSectionsToNavLinks } from "@/features/navbar-sections/navbar-sections.service";
 import type { NavbarSection } from "@/types/navbar-sections";
 

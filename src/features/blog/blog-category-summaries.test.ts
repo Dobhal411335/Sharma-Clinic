@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { buildBlogCategorySummaries } from "@/features/blog/blog.service";
 
 describe("buildBlogCategorySummaries", () => {

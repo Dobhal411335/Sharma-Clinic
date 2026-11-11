@@ -46,12 +46,15 @@ export function Design2Page({ data }: { data: StorefrontWebpage }) {
   const paragraphImages = [
     data.paragraphFirstImage?.url,
     data.paragraphSecondImage?.url,
-  ].filter(Boolean);
-  const getSectionImages = (section) => {
+  ].filter((url): url is string => Boolean(url));
+  const getSectionImages = (section: {
+    firstImage?: { url?: string } | null;
+    secondImage?: { url?: string } | null;
+  }) => {
     const sectionImages = [
       section?.firstImage?.url,
       section?.secondImage?.url,
-    ].filter(Boolean);
+    ].filter((url): url is string => Boolean(url));
     return sectionImages.length > 0 ? sectionImages : paragraphImages;
   };
 

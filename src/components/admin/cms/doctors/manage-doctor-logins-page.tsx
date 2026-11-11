@@ -292,15 +292,13 @@ export function ManageDoctorLoginsPage() {
                                     Send Credentials
                                   </DropdownMenuItem>
                                 ) : null}
-                                {doctor.approvalStatus !== "DISABLED" ? (
-                                  <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive"
-                                    onClick={() => void handleDisable(doctor)}
-                                  >
-                                    <Trash2 className="size-4" aria-hidden />
-                                    Disable Doctor
-                                  </DropdownMenuItem>
-                                ) : null}
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => void handleDisable(doctor)}
+                                >
+                                  <Trash2 className="size-4" aria-hidden />
+                                  Disable Doctor
+                                </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           ) : null}

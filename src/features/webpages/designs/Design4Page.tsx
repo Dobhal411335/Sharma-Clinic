@@ -209,7 +209,7 @@ return (
 
                 <div className="space-y-4">
                   {data.notices.map((notice, idx) => {
-                    const getNoticeStyles = (type) => {
+                    const getNoticeStyles = (type?: string) => {
                       switch (type) {
                         case "warning":
                           return {
@@ -420,7 +420,7 @@ return (
                   {data.searchLocations.map((loc, idx) => (
                     <Link
                       key={idx}
-                      href={loc?.url}
+                      href={loc?.url || "#"}
                       className="grid grid-cols-[1fr_120px] items-center border-b border-gray-200 px-5 py-4 transition-colors hover:bg-gray-50 last:border-b-0"
                     >
                       <span className="font-semibold text-sm text-gray-900">

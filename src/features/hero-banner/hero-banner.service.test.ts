@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { FALLBACK_HERO_SLIDES } from "@/features/hero-banner/hero-banner.defaults";
 import { mapHeroBannerConfigToStorefront } from "@/features/hero-banner/hero-banner.service";
 import type { HeroBannerConfig } from "@/types/hero-banner";

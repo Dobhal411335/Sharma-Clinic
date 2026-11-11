@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import {
   GALLERY_DESKTOP_COLUMNS,
   GALLERY_MAX_ITEMS_PER_COLUMN,

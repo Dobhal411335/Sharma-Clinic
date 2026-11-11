@@ -1,17 +1,21 @@
-const successMock = jest.fn(
-  (_title: string, _options?: unknown) => "toast-success",
-);
-const errorMock = jest.fn(
-  (_title: string, _options?: unknown) => "toast-error",
-);
-const infoMock = jest.fn((_title: string, _options?: unknown) => "toast-info");
-const warningMock = jest.fn(
-  (_title: string, _options?: unknown) => "toast-warning",
-);
-const dismissMock = jest.fn((_id?: unknown) => undefined);
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-jest.mock("goey-toast", () => ({
-  gooeyToast: Object.assign(jest.fn(), {
+const {
+  successMock,
+  errorMock,
+  infoMock,
+  warningMock,
+  dismissMock,
+} = vi.hoisted(() => ({
+  successMock: vi.fn((_title: string, _options?: unknown) => "toast-success"),
+  errorMock: vi.fn((_title: string, _options?: unknown) => "toast-error"),
+  infoMock: vi.fn((_title: string, _options?: unknown) => "toast-info"),
+  warningMock: vi.fn((_title: string, _options?: unknown) => "toast-warning"),
+  dismissMock: vi.fn((_id?: unknown) => undefined),
+}));
+
+vi.mock("goey-toast", () => ({
+  gooeyToast: Object.assign(vi.fn(), {
     success: successMock,
     error: errorMock,
     info: infoMock,

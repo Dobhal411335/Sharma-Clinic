@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { FALLBACK_TOP_ADVERTISEMENT } from "@/features/top-advertisement/top-advertisement.defaults";
 import { mapTopAdvertisementConfigToStorefront } from "@/features/top-advertisement/top-advertisement.service";
 import type { TopAdvertisementConfig } from "@/types/top-advertisement";

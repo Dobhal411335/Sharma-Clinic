@@ -67,11 +67,12 @@ export type DoctorAppointmentCreatePayload = {
   phone: string;
   startsAt: string;
   endsAt: string;
-  problem: string;
+  problem?: string;
   medicalHistoryImageUrl?: string;
   medicalHistoryImagePublicId?: string;
   website?: string;
 };
+
 
 export type DoctorBookableSlot = {
   startsAt: string;

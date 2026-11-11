@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { plainTextForShare } from "@/lib/share-text";
 
 describe("plainTextForShare", () => {

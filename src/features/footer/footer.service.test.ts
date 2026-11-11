@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { mapFooterConfigToStorefront } from "@/features/footer/footer.service";
 import { FALLBACK_FOOTER } from "@/features/footer/footer.defaults";
 import type { FooterConfig } from "@/types/footer";
