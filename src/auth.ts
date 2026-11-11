@@ -46,6 +46,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (loginMethod === "passcode") {
             if (role !== "DOCTOR") return null;
+            // Passcode login must not carry email/password credentials.
+            const strayEmail = readString(credentials?.email);
+            const strayPassword =
+              typeof credentials?.password === "string"
+                ? credentials.password
+                : "";
+            if (strayEmail || strayPassword) return null;
+
             const passcode = readString(credentials?.passcode);
             if (!passcode) return null;
 
@@ -94,6 +102,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               doctorId: user!.doctor?.id ?? null,
             };
           }
+
+          // Password login must not carry a passcode credential.
+          if (readString(credentials?.passcode)) return null;
 
           const email = readString(credentials?.email).toLowerCase();
           const password =

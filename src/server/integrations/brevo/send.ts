@@ -6,6 +6,15 @@ import {
   createBrevoClient,
   readBrevoConfig,
 } from "@/server/integrations/brevo/client";
+import { getClinicConfig } from "@/server/integrations/brevo/config";
+import { EMAIL_THEME } from "@/server/integrations/brevo/theme";
+import { escapeHtml, sanitizeText } from "@/server/integrations/brevo/utils/html";
+import {
+  closingHtml,
+  greetingHtml,
+  renderWithLayout,
+} from "@/server/integrations/brevo/utils/render-email";
+import { highlightBox, primaryButton } from "@/server/integrations/brevo/templates/shared/layout";
 import { formatDoctorDisplayName } from "@/types/doctors";
 
 export class BrevoNotConfiguredError extends Error {
@@ -67,6 +76,7 @@ type SendEmailInput = {
 
 export async function sendTransactionalEmail(input: SendEmailInput): Promise<{
   providerMessageId: string | null;
+  idempotentReplay?: boolean;
 }> {
   const config = readBrevoConfig();
   if (!config) {
@@ -79,7 +89,10 @@ export async function sendTransactionalEmail(input: SendEmailInput): Promise<{
       select: { status: true, providerMessageId: true },
     });
     if (existing?.status === "SENT") {
-      return { providerMessageId: existing.providerMessageId };
+      return {
+        providerMessageId: existing.providerMessageId,
+        idempotentReplay: true,
+      };
     }
   }
 
@@ -151,33 +164,41 @@ export async function sendDoctorEmailVerificationOtp(input: {
   toEmail: string;
   otp: string;
 }): Promise<void> {
-  const clinicName = process.env.CLINIC_NAME?.trim() || "Sharma Clinic";
+  const config = await getClinicConfig();
   const otp = input.otp.trim();
   // Gmail/Apple detect one contiguous 6-digit code near "verification code".
-  // Digit-per-box HTML does not create Gmail's Copy code chip — that chip is
-  // client-side and mostly on the Gmail Android/iOS apps (not guaranteed on web).
-  const subject = `${otp} is your ${clinicName} verification code`;
-  const htmlContent = `
-    <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#1f2937;max-width:560px;margin:0 auto;padding:24px">
-      <p style="margin:0 0 12px;font-size:16px">Your ${escapeHtml(clinicName)} verification code is:</p>
-      <p style="margin:0 0 20px;font-size:32px;font-weight:700;letter-spacing:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#111827">${escapeHtml(otp)}</p>
-      <p style="margin:0 0 12px;color:#4b5563;font-size:14px">It expires in 10 minutes.</p>
-      <p style="margin:0;color:#6b7280;font-size:13px">If you did not request this code, you can ignore this email. We will never ask you for this code by phone, chat, or email.</p>
-    </div>
+  const subject = `${otp} is your ${config.clinicName} verification code`;
+
+  const htmlBody = `
+    <p style="margin:0 0 12px 0;font-family:${EMAIL_THEME.fontFamily};font-size:16px;color:${EMAIL_THEME.text};">Your ${escapeHtml(config.clinicName)} verification code is:</p>
+    <p style="margin:0 0 20px;font-size:32px;font-weight:700;letter-spacing:6px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:${EMAIL_THEME.text};">${escapeHtml(otp)}</p>
+    ${highlightBox("It expires in <strong>10 minutes</strong>.")}
+    <p style="margin:16px 0 0 0;color:${EMAIL_THEME.muted};font-size:13px;">If you did not request this code, you can ignore this email. We will never ask you for this code by phone, chat, or email.</p>
   `.trim();
-  const textContent = [
-    `Your ${clinicName} verification code is ${otp}`,
+
+  const textBody = [
+    `Your ${config.clinicName} verification code is ${otp}`,
     "",
     "It expires in 10 minutes.",
     "",
     "If you did not request this code, you can ignore this email.",
   ].join("\n");
 
+  const rendered = await renderWithLayout(
+    {
+      title: "Verification code",
+      preheader: `Your ${config.clinicName} verification code.`,
+      htmlBody,
+      textBody,
+    },
+    subject,
+    config,
+  );
+
   const appOrigin = storefrontBaseUrl();
   const headers =
     appOrigin && /^https?:\/\//i.test(appOrigin)
       ? {
-          // Emerging draft header; does not guarantee Gmail's UI, but is machine-readable.
           "OTP-Token": `"${otp}"; origin="${appOrigin}"`,
         }
       : undefined;
@@ -185,9 +206,9 @@ export async function sendDoctorEmailVerificationOtp(input: {
   await sendTransactionalEmail({
     templateKind: "doctor.email_verification",
     toEmail: input.toEmail,
-    subject,
-    htmlContent,
-    textContent,
+    subject: rendered.subject,
+    htmlContent: rendered.html,
+    textContent: rendered.text,
     headers,
   });
 }
@@ -200,54 +221,58 @@ export async function sendDoctorLoginCredentialsEmail(input: {
   passcode: string;
   userId: string;
 }): Promise<void> {
-  const clinicName = process.env.CLINIC_NAME?.trim() || "Sharma Clinic";
-  const loginUrl = `${storefrontBaseUrl() || ""}/login`.replace(/([^:]\/)\/+/g, "$1");
+  const config = await getClinicConfig();
+  const loginUrl = `${storefrontBaseUrl() || config.appUrl}/login`.replace(
+    /([^:]\/)\/+/g,
+    "$1",
+  );
   const doctorName = formatDoctorDisplayName(input.toName) || "Doctor";
-  const subject = `Your ${clinicName} doctor login credentials`;
+  const subject = `Your ${config.clinicName} doctor login credentials`;
 
-  const htmlContent = `
-    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#1f2937;max-width:600px;margin:0 auto;padding:24px;background:#f8f5ee">
-      <div style="background:#ffffff;border-radius:16px;padding:28px;border:1px solid #ece7df">
-        <h1 style="font-size:22px;margin:0 0 8px;color:#102a43">Welcome to ${clinicName}</h1>
-        <p style="margin:0 0 18px;color:#5b6b7c">Hello ${escapeHtml(doctorName)},</p>
-        <p style="margin:0 0 18px">Your doctor account has been approved. Use the credentials below to sign in to your dashboard.</p>
-        <div style="border:1px solid #d9e5ea;border-radius:12px;padding:16px;background:#f8fbfc;margin:0 0 22px">
-          <p style="margin:0 0 8px"><strong>Login email:</strong> ${escapeHtml(input.loginEmail)}</p>
-          <p style="margin:0 0 8px"><strong>Password:</strong> ${escapeHtml(input.password)}</p>
-          <p style="margin:0"><strong>Passcode:</strong> ${escapeHtml(input.passcode)}</p>
-        </div>
-        <p style="margin:0 0 18px;color:#5b6b7c;font-size:14px">You can sign in with email and password, or with your passcode alone on the doctor login tab.</p>
-        <a href="${escapeHtml(loginUrl)}" style="display:inline-block;background:#168b91;color:#ffffff;text-decoration:none;font-weight:700;padding:12px 20px;border-radius:999px">Open staff login</a>
-      </div>
-    </div>
+  const htmlBody = `
+    ${greetingHtml(escapeHtml(doctorName))}
+    <p style="margin:0 0 12px 0;">Your doctor account has been approved. Use the credentials below to sign in to your dashboard.</p>
+    ${highlightBox(
+      [
+        `<p style="margin:0 0 8px"><strong>Login email:</strong> ${escapeHtml(input.loginEmail)}</p>`,
+        `<p style="margin:0 0 8px"><strong>Password:</strong> ${escapeHtml(input.password)}</p>`,
+        `<p style="margin:0"><strong>Passcode:</strong> ${escapeHtml(input.passcode)}</p>`,
+      ].join(""),
+    )}
+    <p style="margin:0 0 12px;color:${EMAIL_THEME.muted};font-size:14px;">You can sign in with email and password, or with your passcode alone on the doctor login tab.</p>
+    ${primaryButton("Open staff login", loginUrl)}
+    ${closingHtml(escapeHtml(config.clinicName))}
   `.trim();
 
-  const textContent = [
-    `Hello ${doctorName},`,
+  const textBody = [
+    `Hello ${sanitizeText(doctorName)},`,
     "",
-    `Your ${clinicName} doctor account has been approved.`,
+    `Your ${config.clinicName} doctor account has been approved.`,
     `Login email: ${input.loginEmail}`,
     `Password: ${input.password}`,
     `Passcode: ${input.passcode}`,
     `Login: ${loginUrl}`,
   ].join("\n");
 
+  const rendered = await renderWithLayout(
+    {
+      title: "Doctor login credentials",
+      preheader: `Your ${config.clinicName} doctor account is ready.`,
+      htmlBody,
+      textBody,
+    },
+    subject,
+    config,
+  );
+
   await sendTransactionalEmail({
     templateKind: "doctor.login_credentials",
     toEmail: input.toEmail,
     toName: input.toName,
-    subject,
-    htmlContent,
-    textContent,
+    subject: rendered.subject,
+    htmlContent: rendered.html,
+    textContent: rendered.text,
     referenceId: input.userId,
     idempotencyKey: `doctor-credentials:${input.userId}:${input.loginEmail}`,
   });
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }

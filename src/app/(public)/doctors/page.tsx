@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { DoctorsAboutSection } from "@/components/doctors/doctors-about-section";
 import { DoctorsDirectory } from "@/components/doctors/doctors-directory";
@@ -58,7 +59,9 @@ export default async function DoctorsPage() {
         <>
           <DoctorsAboutSection config={pageConfig} />
           <DoctorsServicesSection config={pageConfig} />
-          <DoctorsDirectory doctors={doctors} facets={facets} />
+          <Suspense fallback={null}>
+            <DoctorsDirectory doctors={doctors} facets={facets} />
+          </Suspense>
         </>
       )}
     </div>

@@ -2,21 +2,16 @@
  * Idempotent Prisma seed for Sharma Clinic.
  *
  * Always (when credentials provided):
- *   - Creates INITIAL ADMIN from INITIAL_ADMIN_EMAIL / INITIAL_ADMIN_PASSWORD
- *     (falls back to SEED_ADMIN_* for compatibility)
+ *   - Creates initial ADMIN from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
  *   - Never overwrites an existing admin password on re-seed
  *   - Upserts non-secret ClinicSetting defaults
  *
- * Demo data (specialties / doctors) only when:
- *   NODE_ENV === "development" OR SEED_DEMO_DATA === "true"
- * Never auto-seeds demo rows in production unless SEED_DEMO_DATA is explicitly true.
+ * Does not seed demo doctors or specialties.
  *
  * Passwords are hashed with Argon2id. Never hardcode credentials. Never log passwords.
  */
 
 import "dotenv/config";
-
-import { createHash } from "node:crypto";
 
 import { hash as argonHash } from "@node-rs/argon2";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -37,16 +32,6 @@ function requireDatabaseUrl(): string {
   return url;
 }
 
-function shouldSeedDemoData(): boolean {
-  if (process.env.SEED_DEMO_DATA === "true") {
-    return true;
-  }
-  if (process.env.SEED_DEMO_DATA === "false") {
-    return false;
-  }
-  return process.env.NODE_ENV === "development";
-}
-
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -56,30 +41,22 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 async function ensureInitialAdmin(prisma: PrismaClient): Promise<void> {
-  const emailRaw =
-    process.env.INITIAL_ADMIN_EMAIL?.trim() ||
-    process.env.SEED_ADMIN_EMAIL?.trim();
-  const password =
-    process.env.INITIAL_ADMIN_PASSWORD || process.env.SEED_ADMIN_PASSWORD;
+  const emailRaw = process.env.SEED_ADMIN_EMAIL?.trim();
+  const password = process.env.SEED_ADMIN_PASSWORD;
 
   if (!emailRaw || !password) {
     console.warn(
-      "[seed] Skipping initial admin: set INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD.",
+      "[seed] Skipping initial admin: set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD.",
     );
     return;
   }
 
   if (password.length < 12) {
-    throw new Error(
-      "INITIAL_ADMIN_PASSWORD (or SEED_ADMIN_PASSWORD) must be at least 12 characters.",
-    );
+    throw new Error("SEED_ADMIN_PASSWORD must be at least 12 characters.");
   }
 
   const email = normalizeEmail(emailRaw);
-  const name =
-    process.env.INITIAL_ADMIN_NAME?.trim() ||
-    process.env.SEED_ADMIN_NAME?.trim() ||
-    "Clinic Admin";
+  const name = process.env.SEED_ADMIN_NAME?.trim() || "Clinic Admin";
 
   const existing = await prisma.user.findUnique({
     where: { email },
@@ -166,101 +143,6 @@ async function upsertClinicSettings(prisma: PrismaClient): Promise<void> {
   console.info("[seed] Clinic settings upserted (non-secret only).");
 }
 
-async function seedDemoData(prisma: PrismaClient): Promise<void> {
-  if (process.env.NODE_ENV === "production" && process.env.SEED_DEMO_DATA !== "true") {
-    console.info("[seed] Skipping demo data in production.");
-    return;
-  }
-
-  if (!shouldSeedDemoData()) {
-    console.info(
-      "[seed] Skipping demo data (set SEED_DEMO_DATA=true or NODE_ENV=development).",
-    );
-    return;
-  }
-
-  const specialty = await prisma.specialty.upsert({
-    where: { slug: "general-medicine" },
-    create: {
-      slug: "general-medicine",
-      name: "General Medicine",
-      description: "Placeholder specialty for local development only.",
-      sortOrder: 1,
-      isActive: true,
-    },
-    update: {
-      name: "General Medicine",
-      isActive: true,
-    },
-  });
-
-  const demoEmail = normalizeEmail(
-    process.env.SEED_DEMO_DOCTOR_EMAIL?.trim() ||
-      "demo.doctor@example.invalid",
-  );
-  const demoPassword =
-    process.env.SEED_DEMO_DOCTOR_PASSWORD?.trim() ||
-    `demo-${createHash("sha256").update(demoEmail).digest("hex").slice(0, 16)}`;
-
-  const existingDoctorUser = await prisma.user.findUnique({
-    where: { email: demoEmail },
-    select: { id: true },
-  });
-
-  let doctorUserId: string;
-  if (existingDoctorUser) {
-    doctorUserId = existingDoctorUser.id;
-    await prisma.user.update({
-      where: { id: doctorUserId },
-      data: {
-        name: "Demo Doctor",
-        role: "DOCTOR",
-        isActive: true,
-        approvalStatus: "APPROVED",
-      },
-    });
-  } else {
-    const passwordHash = await hashPassword(demoPassword);
-    const created = await prisma.user.create({
-      data: {
-        email: demoEmail,
-        name: "Demo Doctor",
-        passwordHash,
-        role: "DOCTOR",
-        isActive: true,
-        approvalStatus: "APPROVED",
-      },
-    });
-    doctorUserId = created.id;
-  }
-
-  await prisma.doctor.upsert({
-    where: { userId: doctorUserId },
-    create: {
-      userId: doctorUserId,
-      slug: "demo-doctor",
-      displayName: "Demo Doctor",
-      specialtyId: specialty.id,
-      biography: "Placeholder doctor profile for local development only.",
-      qualifications: "Placeholder",
-      experienceYears: null,
-      // 50000 paise = ₹500 — development placeholder, not a published clinic fee.
-      consultationFeePaise: 50_000,
-      isActive: true,
-    },
-    update: {
-      slug: "demo-doctor",
-      displayName: "Demo Doctor",
-      specialtyId: specialty.id,
-      isActive: true,
-    },
-  });
-
-  console.info(
-    `[seed] Demo specialty + doctor upserted (${demoEmail}). Password from SEED_DEMO_DOCTOR_PASSWORD or generated locally — not logged.`,
-  );
-}
-
 async function main(): Promise<void> {
   const pool = new Pool({ connectionString: requireDatabaseUrl() });
   const adapter = new PrismaPg(pool);
@@ -269,7 +151,6 @@ async function main(): Promise<void> {
   try {
     await ensureInitialAdmin(prisma);
     await upsertClinicSettings(prisma);
-    await seedDemoData(prisma);
   } finally {
     await prisma.$disconnect();
     await pool.end();

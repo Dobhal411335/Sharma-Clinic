@@ -303,7 +303,7 @@ export function DoctorScheduleForm({
                 <div className="space-y-3">
                   {byDay[day].length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      No windows yet. Add a morning or evening slot.
+                      No windows yet. Add a morning,afternoon or evening slot.
                     </p>
                   ) : (
                     byDay[day].map((window) => {

@@ -47,6 +47,7 @@ function createEmptyFormValues(): DoctorProfileFormValues {
     photoPublicId: "",
     active: true,
     order: "",
+    consultationFeeInr: "0",
   };
 }
 
@@ -81,6 +82,7 @@ function dtoToFormValues(doctor: DoctorProfileDto): DoctorProfileFormValues {
     photoPublicId: doctor.photoPublicId,
     active: doctor.active,
     order: String(doctor.order ?? ""),
+    consultationFeeInr: "0",
   };
 }
 

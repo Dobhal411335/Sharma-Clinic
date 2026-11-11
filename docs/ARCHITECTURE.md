@@ -39,7 +39,7 @@ domain service. 5. Return the standard response.
     remain verifiable for migration.
 -   Role values: ADMIN, DOCTOR. Session/JWT carry `id`, `role`, and
     `doctorId` (resolved from `Doctor.userId`, not a User column).
--   Initial admin via `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`
+-   Initial admin via `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`
     in seed (idempotent; never overwrites an existing password).
 -   Login rate limits are Postgres-backed (`AuthRateLimit`), not
     in-memory-only.

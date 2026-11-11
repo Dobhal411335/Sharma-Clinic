@@ -24,7 +24,14 @@ export type DeleteAssetResult = {
 };
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"]);
+const MEDICAL_HISTORY_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+]);
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_MEDICAL_HISTORY_BYTES = 10 * 1024 * 1024;
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
 
@@ -129,6 +136,22 @@ export async function uploadSingleImage(file: File): Promise<UploadedAsset> {
   assertFile(file, (item) => IMAGE_TYPES.has(item.type), MAX_IMAGE_BYTES, "Image");
   return uploadBuffer(await toBuffer(file), {
     folder: "sharma-clinic/images",
+    resourceType: "image",
+  });
+}
+
+/** Public booking attachment — JPG/PNG/WebP only, dedicated folder. */
+export async function uploadMedicalHistoryImage(
+  file: File,
+): Promise<UploadedAsset> {
+  assertFile(
+    file,
+    (item) => MEDICAL_HISTORY_IMAGE_TYPES.has(item.type.toLowerCase()),
+    MAX_MEDICAL_HISTORY_BYTES,
+    "Medical history image",
+  );
+  return uploadBuffer(await toBuffer(file), {
+    folder: "sharma-clinic/medical-history",
     resourceType: "image",
   });
 }

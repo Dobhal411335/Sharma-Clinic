@@ -33,12 +33,13 @@ import { ApiError } from "@/services/api/errors";
 import type { DoctorProfileFormValues } from "@/types/admin/doctor-profile";
 
 type DoctorProfileFormProps = {
-  
   values: DoctorProfileFormValues;
   errors: DoctorProfileFormErrors;
   isSubmitting: boolean;
   isEditing: boolean;
   editingId: string | null;
+  /** Admin can edit fee; doctor self-edit is read-only. */
+  feeEditable?: boolean;
   onChange: (values: DoctorProfileFormValues) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onReset: () => void;
@@ -50,6 +51,7 @@ export function DoctorProfileForm({
   isSubmitting,
   isEditing,
   editingId,
+  feeEditable = true,
   onChange,
   onSubmit,
   onReset,
@@ -394,9 +396,10 @@ export function DoctorProfileForm({
                   type="email"
                   value={values.email}
                   placeholder="doctor@example.com"
-                  onChange={(event) =>
-                    onChange({ ...values, email: event.target.value })
-                  }
+                  readOnly
+                  disabled
+                  aria-readonly="true"
+                  className="cursor-not-allowed bg-muted/50"
                 />
                 {errors.email ? (
                   <p className="text-sm text-destructive">{errors.email}</p>
@@ -439,10 +442,44 @@ export function DoctorProfileForm({
                 ) : null}
               </div>
 
+              <div className="space-y-2 rounded-lg border border-border px-3 py-3">
+                <Label htmlFor="doctor-fee">
+                  Consultation fee (INR) <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="doctor-fee"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={1}
+                  value={values.consultationFeeInr}
+                  placeholder="0"
+                  readOnly={!feeEditable}
+                  disabled={!feeEditable}
+                  onChange={(event) =>
+                    onChange({
+                      ...values,
+                      consultationFeeInr: event.target.value,
+                    })
+                  }
+                />
+                {errors.consultationFeeInr ? (
+                  <p className="text-sm text-destructive">
+                    {errors.consultationFeeInr}
+                  </p>
+                ) : null}
+              </div>
+
               <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                  <Label htmlFor="doctor-active">Active</Label>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="doctor-active">Show on website</Label>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    When on, this doctor appears on the landing page and /doctors
+                    (photo required).
+                  </p>
                 </div>
                 <Switch
                   id="doctor-active"

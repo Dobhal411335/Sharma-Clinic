@@ -4,13 +4,24 @@ import {
   createLoggerConfig,
   formatLogLine,
   shouldLog,
+  slowThresholdForKind,
   type FrontendLogLevel,
 } from "./logger.config";
 import { redactValue } from "./logger.redaction";
 
-export { sanitizeUrl, redactValue, REDACTED, isSensitiveKey } from "./logger.redaction";
-export type { FrontendLogLevel } from "./logger.config";
-export { createLoggerConfig, shouldLog } from "./logger.config";
+export {
+  sanitizeUrl,
+  redactValue,
+  REDACTED,
+  isSensitiveKey,
+} from "./logger.redaction";
+export type { FrontendLogLevel, LogFormat, SlowLogThresholds } from "./logger.config";
+export {
+  createLoggerConfig,
+  shouldLog,
+  readSlowLogThresholds,
+  slowThresholdForKind,
+} from "./logger.config";
 
 export type LogContext = Record<string, unknown>;
 
@@ -37,7 +48,7 @@ function write(
 
   try {
     const safe = context ? (redactValue(context) as LogContext) : undefined;
-    const line = formatLogLine(level, service, message, safe);
+    const line = formatLogLine(level, service, message, safe, config.format);
     const consoleMethod =
       level === "debug"
         ? "debug"
@@ -91,6 +102,50 @@ export function logError(error: unknown, context?: LogContext): void {
   });
 }
 
+export function logExternalServiceError(
+  service: string,
+  error: unknown,
+  context?: LogContext,
+): void {
+  logger.error(
+    error instanceof Error ? error.message : `${service} request failed`,
+    {
+      ...context,
+      service,
+      errorName: error instanceof Error ? error.name : "unknown",
+    },
+  );
+}
+
+export function logPerformance(input: {
+  kind?: string;
+  operation: string;
+  durationMs: number;
+  module?: string;
+  function?: string;
+  meta?: LogContext;
+}): void {
+  const config = createLoggerConfig("clinic-storefront");
+  const threshold = slowThresholdForKind(input.kind, config.slow);
+  const isSlow = threshold !== undefined && input.durationMs >= threshold;
+  const context: LogContext = {
+    kind: input.kind ?? "performance",
+    module: input.module,
+    function: input.function,
+    durationMs: input.durationMs,
+    ...(threshold !== undefined ? { thresholdMs: threshold, slow: isSlow } : {}),
+    ...input.meta,
+  };
+
+  if (isSlow) {
+    logger.warn(input.operation, context);
+    return;
+  }
+
+  // Fast path: keep under threshold at debug so prod (info+) stays quiet.
+  logger.debug(input.operation, context);
+}
+
 export type ApiRouteContext = {
   params?:
     | Record<string, string | string[]>
@@ -111,10 +166,30 @@ export function logAuditEvent(
 
 export function withRequestLogging<Args extends unknown[]>(
   handler: (request: Request, ...args: Args) => Promise<Response>,
-  _meta?: { api?: string },
+  meta?: { api?: string },
 ): (request: Request, ...args: Args) => Promise<Response> {
   return async (request: Request, ...args: Args) => {
-    const requestId = request.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
-    return requestStore.run({ requestId }, () => handler(request, ...args));
+    const requestId =
+      request.headers.get(REQUEST_ID_HEADER) ?? crypto.randomUUID();
+    const started = Date.now();
+    return requestStore.run({ requestId }, async () => {
+      try {
+        return await handler(request, ...args);
+      } finally {
+        const durationMs = Date.now() - started;
+        logPerformance({
+          kind: "request",
+          operation: meta?.api ? `api.${meta.api}` : "api.request",
+          durationMs,
+          module: "http",
+          function: "withRequestLogging",
+          meta: {
+            requestId,
+            method: request.method,
+            path: new URL(request.url).pathname,
+          },
+        });
+      }
+    });
   };
 }

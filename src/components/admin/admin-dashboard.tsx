@@ -18,7 +18,9 @@ import { formatPaiseToInr } from "@/lib/utils";
 
 const APPOINTMENT_LABELS: Record<AppointmentStatus, string> = {
   PENDING_PAYMENT: "Pending payment",
-  CONFIRMED: "Confirmed",
+  PENDING: "Pending acceptance",
+  ACCEPTED: "Accepted",
+  DECLINED: "Declined",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
   NO_SHOW: "No show",

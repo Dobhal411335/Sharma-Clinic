@@ -27,7 +27,10 @@ enum StaffApprovalStatus {
 
 enum AppointmentStatus {
   PENDING_PAYMENT
-  CONFIRMED
+  /// Paid; awaiting admin accept/decline.
+  PENDING
+  ACCEPTED
+  DECLINED
   CANCELLED
   COMPLETED
   NO_SHOW
@@ -293,8 +296,8 @@ model AvailabilityException {
 // ─── Appointments ────────────────────────────────────────────────────────────
 
 /// Status changes over hard delete. Fee snapshot is immutable historically.
-/// Overlap of PENDING_PAYMENT|CONFIRMED ranges blocked by PostgreSQL EXCLUDE
-/// (see migration `appointments_doctor_time_excl`).
+/// Overlap of PENDING_PAYMENT|PENDING|ACCEPTED ranges blocked by PostgreSQL EXCLUDE
+/// (see migration `appointments_doctor_time_excl` / status updates).
 model Appointment {
   id                 String            @id @default(cuid())
   /// Public booking id (docs alias: publicReference).

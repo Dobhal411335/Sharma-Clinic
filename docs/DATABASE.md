@@ -236,13 +236,10 @@ npm run prisma:seed
 npx prisma db seed
 ```
 
-Requires `DATABASE_URL`. Initial admin from `INITIAL_ADMIN_EMAIL` +
-`INITIAL_ADMIN_PASSWORD` (Argon2id; min length 12). `SEED_ADMIN_*` aliases
-still accepted. Existing admin password is **never** overwritten on re-seed.
-Demo specialties/doctors only when `NODE_ENV=development` **or**
-`SEED_DEMO_DATA=true`. Never auto-seeds demo in production unless
-`SEED_DEMO_DATA` is explicitly `true`. Idempotent upserts. Never hardcodes
-passwords.
+Requires `DATABASE_URL`. Initial admin from `SEED_ADMIN_EMAIL` +
+`SEED_ADMIN_PASSWORD` (Argon2id; min length 12). Existing admin password is
+**never** overwritten on re-seed. Does not seed demo doctors or specialties.
+Idempotent upserts. Never hardcodes passwords.
 
 ## 9. Commands
 

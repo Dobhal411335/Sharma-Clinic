@@ -1,9 +1,11 @@
 import {
-  sendAppointmentConfirmedEmail,
+  sendBookingReceivedEmail,
+  sendNewAppointmentDoctorEmail,
+  sendNewBookingAdminEmail,
   sendPaymentReceiptEmail,
   sendPaymentReceivedAdminEmail,
-} from "@/lib/brevo";
-import { getClinicConfig } from "@/lib/brevo/config";
+} from "@/server/integrations/brevo";
+import { getClinicConfig } from "@/server/integrations/brevo/config";
 import { db } from "@/lib/db/prisma";
 
 import type { PaymentNotificationOutboxItem } from "../types";
@@ -34,9 +36,7 @@ function formatPaidAtLabel(paidAt: Date, timezone: string): string {
 
 /**
  * Sends post-payment emails AFTER the payment transaction commits.
- * Failures are logged safely and never roll back payment state.
- *
- * Outbox type is prepared for a future durable table — items are built in memory only.
+ * Appointment is PENDING (awaiting admin) — do not send accepted/confirmed here.
  */
 export async function notifyPaymentSucceeded(input: {
   paymentId: string;
@@ -54,7 +54,7 @@ export async function notifyPaymentSucceeded(input: {
       kind: "appointment-confirmed",
       appointmentId: input.appointmentId,
       paymentId: input.paymentId,
-      idempotencyKey: `appointment-confirmed:${input.appointmentId}:${input.paymentId}`,
+      idempotencyKey: `booking-received:${input.appointmentId}:${input.paymentId}`,
       createdAt: new Date(),
     },
     {
@@ -86,11 +86,17 @@ export async function notifyPaymentSucceeded(input: {
       return;
     }
 
-    const clinic = getClinicConfig();
+    const clinic = await getClinicConfig();
     const appointment = payment.appointment;
     const doctorName = appointment.doctor.displayName;
-    const startsAtLabel = formatSlotLabel(appointment.startsAt, clinic.clinicTimezone);
+    const doctorEmail = appointment.doctor.user.email;
+    const startsAtLabel = formatSlotLabel(
+      appointment.startsAt,
+      clinic.clinicTimezone,
+    );
     const paidAtLabel = formatPaidAtLabel(payment.paidAt, clinic.clinicTimezone);
+    const adminEmail =
+      clinic.adminNotificationEmail || clinic.clinicEmail || undefined;
 
     for (const item of outbox) {
       try {
@@ -101,12 +107,14 @@ export async function notifyPaymentSucceeded(input: {
               patientEmail: appointment.patientEmail,
               doctorName,
               bookingReference: appointment.bookingReference,
-              paymentReference: payment.id,
+              paymentReference:
+                payment.providerPaymentId ?? payment.id,
               amount: {
                 amountPaise: payment.amountPaise,
                 currency: "INR",
               },
               paidAtLabel,
+              paymentStatus: "Paid",
               appointment: {
                 startsAtLabel,
                 timezoneLabel: clinic.clinicTimezone,
@@ -115,7 +123,8 @@ export async function notifyPaymentSucceeded(input: {
             { idempotencyKey: item.idempotencyKey },
           );
         } else if (item.kind === "appointment-confirmed") {
-          await sendAppointmentConfirmedEmail(
+          // Paid but awaiting admin — booking-received, not accepted.
+          await sendBookingReceivedEmail(
             {
               patientName: appointment.patientName,
               patientEmail: appointment.patientEmail,
@@ -125,18 +134,63 @@ export async function notifyPaymentSucceeded(input: {
                 startsAtLabel,
                 timezoneLabel: clinic.clinicTimezone,
               },
-              locationLabel: clinic.clinicAddress || undefined,
+              bookingStatus: "Pending clinic acceptance",
+              paymentStatus: "Paid",
+              nextSteps:
+                "Your payment was received. The clinic will review and confirm your appointment shortly.",
             },
             { idempotencyKey: item.idempotencyKey },
           );
-        } else if (item.kind === "admin-payment-received" && clinic.clinicEmail) {
+
+          await sendNewAppointmentDoctorEmail(
+            {
+              doctorName,
+              doctorEmail,
+              patientName: appointment.patientName,
+              patientEmail: appointment.patientEmail,
+              patientPhone: appointment.patientPhone ?? undefined,
+              bookingReference: appointment.bookingReference,
+              appointment: {
+                startsAtLabel,
+                timezoneLabel: clinic.clinicTimezone,
+              },
+              bookingStatus: "Pending acceptance",
+            },
+            {
+              idempotencyKey: `doctor-new-appt:${appointment.id}:${payment.id}`,
+            },
+          );
+
+          if (adminEmail) {
+            await sendNewBookingAdminEmail(
+              {
+                adminEmail,
+                patientName: appointment.patientName,
+                patientEmail: appointment.patientEmail,
+                patientPhone: appointment.patientPhone ?? undefined,
+                doctorName,
+                bookingReference: appointment.bookingReference,
+                appointment: {
+                  startsAtLabel,
+                  timezoneLabel: clinic.clinicTimezone,
+                },
+                bookingStatus: "Pending acceptance",
+                paymentStatus: "Paid",
+              },
+              {
+                idempotencyKey: `admin-new-booking:${appointment.id}:${payment.id}`,
+              },
+            );
+          }
+        } else if (item.kind === "admin-payment-received" && adminEmail) {
           await sendPaymentReceivedAdminEmail(
             {
-              adminEmail: clinic.clinicEmail,
+              adminEmail,
               patientName: appointment.patientName,
               doctorName,
               bookingReference: appointment.bookingReference,
-              paymentReference: payment.id,
+              paymentReference:
+                payment.providerPaymentId ?? payment.id,
               amount: {
                 amountPaise: payment.amountPaise,
                 currency: "INR",

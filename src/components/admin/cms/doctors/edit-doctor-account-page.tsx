@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 import { DoctorProfileEditor } from "@/components/doctors/doctor-profile-editor";
 import { AdminAppShell } from "@/components/layout/admin-app-shell";
@@ -15,7 +15,6 @@ import {
 
 export function EditDoctorAccountPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const userId = params.id;
 
   if (!userId) {
@@ -37,7 +36,6 @@ export function EditDoctorAccountPage() {
         saveAvailability={(payload) =>
           saveAdminDoctorAvailability(userId, payload).then(() => undefined)
         }
-        onSavedRedirect={() => router.push("/admin/doctors/logins")}
       />
     </AdminAppShell>
   );

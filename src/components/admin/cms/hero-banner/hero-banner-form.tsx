@@ -239,7 +239,7 @@ export function HeroBannerForm({
   onSubmit,
   formId = "hero-banner-form",
 }: HeroBannerFormProps) {
-  const [activeTab, setActiveTab] = useState<HeroBannerLayoutType>("DOCTOR_BANNER");
+  const [activeTab, setActiveTab] = useState<HeroBannerLayoutType>("FULL_WIDTH");
   const [uploadingKey, setUploadingKey] = useState("");
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 

@@ -41,6 +41,8 @@ export type DoctorProfileFormValues = {
   photoPublicId: string;
   active: boolean;
   order: string;
+  /** Whole INR rupees for UI; persisted as paise on Doctor. */
+  consultationFeeInr: string;
 };
 
 export type DoctorProfilePayload = {
@@ -61,4 +63,6 @@ export type DoctorProfilePayload = {
   photoPublicId: string;
   active: boolean;
   order?: number;
+  /** Integer paise. */
+  consultationFeePaise?: number;
 };

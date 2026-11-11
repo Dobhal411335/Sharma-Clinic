@@ -20,6 +20,8 @@ export type DoctorProfile = {
   /** Linked Prisma Doctor id when provisioned via staff login flow. */
   staffDoctorId?: string | null;
   staffUserId?: string | null;
+  /** Current consultation fee in paise (from Prisma Doctor). */
+  consultationFeePaise?: number;
 };
 
 /** Distinct filter options from active doctors on the site. */
@@ -58,15 +60,23 @@ export type DoctorPageConfig = {
 };
 
 export type DoctorAppointmentCreatePayload = {
+  /** Prisma Doctor id (staffDoctorId). */
   doctorId: string;
   patientName: string;
   email: string;
   phone: string;
-  scheduledAt: string;
+  startsAt: string;
+  endsAt: string;
   problem: string;
   medicalHistoryImageUrl?: string;
   medicalHistoryImagePublicId?: string;
   website?: string;
+};
+
+export type DoctorBookableSlot = {
+  startsAt: string;
+  endsAt: string;
+  label: string;
 };
 
 /**

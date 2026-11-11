@@ -38,6 +38,7 @@ export type DoctorAccountDetail = DoctorAccountListItem & {
     photoPublicId: string;
     active: boolean;
     order: number;
+    consultationFeePaise: number;
   };
 };
 
@@ -79,5 +80,6 @@ export type UpdateDoctorAccountInput = {
     photoPublicId: string;
     active: boolean;
     order?: number;
+    consultationFeePaise?: number;
   };
 };

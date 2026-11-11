@@ -1,209 +1,264 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, ChevronDown, Clock3, Loader2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "cn";
-
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
-
-const TIME_SLOTS = Array.from({ length: 24 }, (_, hour) => {
-  const value = `${String(hour).padStart(2, "0")}:00`;
-  return value;
-});
+import { cn } from "@/lib/utils";
+import { fetchDoctorSlots } from "@/features/doctors/create-doctor-appointment";
+import type { DoctorBookableSlot } from "@/types/doctors";
 
 type AppointmentDateTimePickerProps = {
-  value: Date | null;
-  onChange: (value: Date | null) => void;
-  disabled?: boolean;
+  doctorId: string;
+  value: { startsAt: string; endsAt: string } | null;
+  onChange: (value: { startsAt: string; endsAt: string } | null) => void;
 };
 
-function startOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
+const DAY_COUNT = 45;
+
+function clinicTodayIso(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
-function addMonths(date: Date, amount: number): Date {
-  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+function addDaysIso(isoDate: string, days: number): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  const utc = new Date(Date.UTC(y, m - 1, d + days));
+  return utc.toISOString().slice(0, 10);
 }
 
-function isSameDay(left: Date, right: Date): boolean {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate()
-  );
-}
-
-function formatDisplay(value: Date | null): string {
-  if (!value) return "Choose Time";
+function formatDateShort(isoDate: string): string {
   return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(value);
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(`${isoDate}T12:00:00+05:30`));
+}
+
+function formatDateLong(isoDate: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(`${isoDate}T12:00:00+05:30`));
+}
+
+function formatValueLabel(value: {
+  startsAt: string;
+  endsAt: string;
+}): string {
+  const dateLabel = new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value.startsAt));
+  const start = new Intl.DateTimeFormat("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value.startsAt));
+  const end = new Intl.DateTimeFormat("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value.endsAt));
+  return `${dateLabel} · ${start} – ${end}`;
 }
 
 export function AppointmentDateTimePicker({
+  doctorId,
   value,
   onChange,
-  disabled,
 }: AppointmentDateTimePickerProps) {
+  const today = useMemo(() => clinicTodayIso(), []);
+  const dates = useMemo(
+    () => Array.from({ length: DAY_COUNT }, (_, index) => addDaysIso(today, index)),
+    [today],
+  );
+
   const [open, setOpen] = useState(false);
-  const [month, setMonth] = useState(() => startOfMonth(value ?? new Date()));
-  const selectedTime = useMemo(() => {
-    if (value) {
-      return `${String(value.getHours()).padStart(2, "0")}:00`;
-    }
-    const currentHour = new Date().getHours();
-    const defaultHour =
-      currentHour >= 10 && currentHour < 21 ? currentHour + 1 : 10;
-    return `${String(defaultHour).padStart(2, "0")}:00`;
-  }, [value]);
+  const [date, setDate] = useState(today);
+  const [slots, setSlots] = useState<DoctorBookableSlot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const days = useMemo(() => {
-    const first = startOfMonth(month);
-    const startOffset = first.getDay();
-    const daysInMonth = new Date(
-      month.getFullYear(),
-      month.getMonth() + 1,
-      0,
-    ).getDate();
-    const cells: Array<Date | null> = [];
-    for (let i = 0; i < startOffset; i += 1) cells.push(null);
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      cells.push(new Date(month.getFullYear(), month.getMonth(), day));
-    }
-    return cells;
-  }, [month]);
-
-  const today = useMemo(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }, []);
-
-  const applySelection = (day: Date, time: string) => {
-    const [hours] = time.split(":").map(Number);
-    const next = new Date(
-      day.getFullYear(),
-      day.getMonth(),
-      day.getDate(),
-      hours ?? 10,
-      0,
-      0,
-      0,
-    );
-    onChange(next);
-  };
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const next = await fetchDoctorSlots(doctorId, date);
+        if (!cancelled) {
+          setSlots(next);
+          if (
+            value &&
+            !next.some(
+              (slot) =>
+                slot.startsAt === value.startsAt && slot.endsAt === value.endsAt,
+            )
+          ) {
+            // Keep previous value until user picks a new slot; do not clear while browsing.
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setSlots([]);
+          setError(err instanceof Error ? err.message : "Could not load slots");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [doctorId, date, open]); // eslint-disable-line react-hooks/exhaustive-deps -- omit value/onChange
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <button
           type="button"
-          variant="outline"
-          disabled={disabled}
           className={cn(
-            "h-11 w-full justify-between rounded-xl border-border bg-background px-3 font-normal",
-            !value && "text-muted-foreground",
+            "flex h-10 w-full items-center justify-between rounded-md border border-[#e4ddd0] bg-white px-3 text-left text-sm shadow-xs outline-none transition-colors",
+            "hover:bg-[#fbf8f2] focus-visible:ring-2 focus-visible:ring-ring",
+            open && "ring-2 ring-ring",
           )}
+          aria-label="Select date and time"
         >
-          <span className="truncate">{formatDisplay(value)}</span>
-          <CalendarDays className="size-4 text-muted-foreground" aria-hidden />
-        </Button>
+          <span className="flex min-w-0 items-center gap-2">
+            <CalendarDays
+              className="size-4 shrink-0 text-[#168b91]"
+              aria-hidden
+            />
+            <span
+              className={cn(
+                "truncate",
+                value ? "font-medium text-[#1a2330]" : "text-[#8a8376]",
+              )}
+            >
+              {value ? formatValueLabel(value) : "Select date and time"}
+            </span>
+          </span>
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 text-[#8a8376] transition-transform",
+              open && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-3" align="start">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="w-[240px]">
-            <div className="mb-2 flex items-center justify-between">
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label="Previous month"
-                onClick={() => setMonth((current) => addMonths(current, -1))}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <p className="text-sm font-semibold">
-                {month.toLocaleString("en-IN", {
-                  month: "long",
-                  year: "numeric",
-                })}
+
+      <PopoverContent
+        align="start"
+        sideOffset={8}
+        className="w-[min(100vw-2rem,28rem)] border-[#e4ddd0] bg-white p-0 shadow-lg"
+      >
+        <div className="flex h-72 overflow-hidden rounded-xl">
+          <div className="flex w-[42%] flex-col border-r border-[#e4ddd0] bg-[#fbf8f2]">
+            <div className="border-b border-[#e4ddd0] px-3 py-2">
+              <p className="text-xs font-semibold tracking-wide text-[#6b7280] uppercase">
+                Date
               </p>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label="Next month"
-                onClick={() => setMonth((current) => addMonths(current, 1))}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
             </div>
-            <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
-              {WEEKDAYS.map((day) => (
-                <span key={day}>{day}</span>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {days.map((day, index) => {
-                if (!day) {
-                  return <span key={`empty-${index}`} className="size-8" />;
-                }
-                const disabledDay = day < today;
-                const selected = value ? isSameDay(day, value) : false;
+            <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
+              {dates.map((day) => {
+                const active = day === date;
                 return (
                   <button
-                    key={day.toISOString()}
+                    key={day}
                     type="button"
-                    disabled={disabledDay}
-                    onClick={() => applySelection(day, selectedTime)}
+                    onClick={() => setDate(day)}
                     className={cn(
-                      "size-8 rounded-full text-sm transition-colors",
-                      selected
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted",
-                      disabledDay && "cursor-not-allowed opacity-40",
+                      "mb-1 flex w-full flex-col rounded-lg px-2.5 py-2 text-left transition-colors",
+                      active
+                        ? "bg-[#168b91] text-white"
+                        : "text-[#1a2330] hover:bg-white",
                     )}
                   >
-                    {day.getDate()}
+                    <span className="text-sm font-semibold">
+                      {formatDateShort(day)}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[11px]",
+                        active ? "text-white/80" : "text-[#8a8376]",
+                      )}
+                    >
+                      {day === today ? "Today" : formatDateLong(day).split(",")[0]}
+                    </span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="w-full border-t border-border pt-3 sm:w-28 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">Time</p>
-            <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
-              {TIME_SLOTS.map((slot) => {
-                const active = selectedTime === slot;
-                return (
-                  <button
-                    key={slot}
-                    type="button"
-                    disabled={!value}
-                    onClick={() => {
-                      if (!value) return;
-                      applySelection(value, slot);
-                    }}
-                    className={cn(
-                      "flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-sm transition-colors",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted",
-                      !value && "cursor-not-allowed opacity-40",
-                    )}
-                  >
-                    {slot}
-                  </button>
-                );
-              })}
+          <div className="flex min-w-0 flex-1 flex-col bg-white">
+            <div className="border-b border-[#e4ddd0] px-3 py-2">
+              <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-[#6b7280] uppercase">
+                <Clock3 className="size-3.5 text-[#168b91]" aria-hidden />
+                Time · {formatDateShort(date)}
+              </p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              {loading ? (
+                <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Loading…
+                </div>
+              ) : error ? (
+                <p className="px-2 py-4 text-sm text-destructive">{error}</p>
+              ) : slots.length === 0 ? (
+                <p className="px-2 py-4 text-sm text-muted-foreground">
+                  No free slots on this day. Pick another date.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  {slots.map((slot) => {
+                    const selected =
+                      value?.startsAt === slot.startsAt &&
+                      value?.endsAt === slot.endsAt;
+                    return (
+                      <button
+                        key={`${slot.startsAt}-${slot.endsAt}`}
+                        type="button"
+                        onClick={() => {
+                          onChange({
+                            startsAt: slot.startsAt,
+                            endsAt: slot.endsAt,
+                          });
+                          setOpen(false);
+                        }}
+                        className={cn(
+                          "rounded-lg border px-2.5 py-2 text-left text-sm font-medium transition-colors",
+                          selected
+                            ? "border-[#168b91] bg-[#d9ecee] text-[#12757a]"
+                            : "border-[#e4ddd0] bg-[#fbf8f2] hover:border-[#168b91]/50",
+                        )}
+                      >
+                        {slot.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

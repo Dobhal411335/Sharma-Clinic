@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import {
@@ -153,13 +154,36 @@ function formatFilterSummary(filters: DoctorSearchFilters): string {
   return parts.join(" · ");
 }
 
+function filtersFromSearchParams(
+  params: URLSearchParams,
+): DoctorSearchFilters | null {
+  const next: DoctorSearchFilters = {
+    name: params.get("name")?.trim() ?? "",
+    speciality: params.get("speciality")?.trim() ?? "",
+    state: params.get("state")?.trim() ?? "",
+    city: params.get("city")?.trim() ?? "",
+    location: params.get("location")?.trim() ?? "",
+  };
+  return hasFilters(next) ? next : null;
+}
+
 export function DoctorsDirectory({ doctors, facets }: DoctorsDirectoryProps) {
-  const [draft, setDraft] = useState<DoctorSearchFilters>(EMPTY_FILTERS);
-  const [applied, setApplied] = useState<DoctorSearchFilters>(EMPTY_FILTERS);
+  const searchParams = useSearchParams();
+  const initialFromUrl = useMemo(
+    () => filtersFromSearchParams(searchParams),
+    [searchParams],
+  );
+  const [draft, setDraft] = useState<DoctorSearchFilters>(
+    () => initialFromUrl ?? EMPTY_FILTERS,
+  );
+  const [applied, setApplied] = useState<DoctorSearchFilters>(
+    () => initialFromUrl ?? EMPTY_FILTERS,
+  );
   const [selectKey, setSelectKey] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [isPending, startTransition] = useTransition();
   const searchTimeoutRef = useRef<number | null>(null);
+  const appliedUrlKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -168,6 +192,17 @@ export function DoctorsDirectory({ doctors, facets }: DoctorsDirectoryProps) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const key = searchParams.toString();
+    if (appliedUrlKeyRef.current === key) return;
+    appliedUrlKeyRef.current = key;
+    const fromUrl = filtersFromSearchParams(searchParams);
+    if (!fromUrl) return;
+    setDraft(fromUrl);
+    setApplied(fromUrl);
+    setSelectKey((value) => value + 1);
+  }, [searchParams]);
 
   const liveFacets = useMemo(() => facetsFromDoctors(doctors), [doctors]);
   const filteredDoctors = doctors.filter((doctor) =>

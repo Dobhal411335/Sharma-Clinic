@@ -8,7 +8,9 @@ import type { DashboardRange } from "./dashboard-range";
 
 const APPOINTMENT_STATUSES: AppointmentStatus[] = [
   "PENDING_PAYMENT",
-  "CONFIRMED",
+  "PENDING",
+  "ACCEPTED",
+  "DECLINED",
   "COMPLETED",
   "CANCELLED",
   "NO_SHOW",
@@ -84,8 +86,10 @@ export async function getAdminDashboardSummary(
   return {
     totalDoctors,
     totalAppointments: appointmentsByStatus.reduce((sum, row) => sum + row.count, 0),
-    pendingAppointments: countFor(appointmentGroups, "PENDING_PAYMENT"),
-    confirmedAppointments: countFor(appointmentGroups, "CONFIRMED"),
+    pendingAppointments:
+      countFor(appointmentGroups, "PENDING_PAYMENT") +
+      countFor(appointmentGroups, "PENDING"),
+    confirmedAppointments: countFor(appointmentGroups, "ACCEPTED"),
     completedAppointments: countFor(appointmentGroups, "COMPLETED"),
     paidPaymentCount: paidRow?._count._all ?? 0,
     paidAmountPaise: paidRow?._sum.amountPaise ?? 0,

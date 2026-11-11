@@ -54,14 +54,11 @@ export function LoginForm() {
           ? {
               loginMethod: "passcode",
               passcode,
-              email: "",
-              password: "",
             }
           : {
               loginMethod: "password",
               email,
               password,
-              passcode: "",
             }),
         role: portal,
         redirect: false,
@@ -174,6 +171,12 @@ export function LoginForm() {
                 onClick={() => {
                   setDoctorMethod(item.id);
                   setError(null);
+                  if (item.id === "passcode") {
+                    setEmail("");
+                    setPassword("");
+                  } else {
+                    setPasscode("");
+                  }
                 }}
                 className={cn(
                   "h-9 rounded-md border px-3 text-xs font-semibold transition sm:text-sm",

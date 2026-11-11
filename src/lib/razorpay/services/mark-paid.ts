@@ -124,10 +124,11 @@ export async function markPaymentPaid(input: {
       );
     }
 
+    // Payment succeeded — appointment awaits admin accept/decline.
     await tx.appointment.update({
       where: { id: payment.appointmentId },
       data: {
-        status: "CONFIRMED",
+        status: "PENDING",
       },
     });
 

@@ -241,7 +241,8 @@ function SplitDualSlide({ slide, priority }: { slide: StorefrontHeroSlide; prior
   );
 }
 
-function telHref(callNumber: string) {
+function telHref(callNumber: string | null | undefined) {
+  if (!callNumber) return undefined;
   const digits = callNumber.replace(/[^\d+]/g, "");
   return digits ? `tel:${digits}` : undefined;
 }

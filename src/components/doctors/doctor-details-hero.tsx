@@ -1,7 +1,22 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Check } from "lucide-react";
 
+import { DoctorDetailsBooking } from "@/components/doctors/doctor-details-booking";
 import { formatDoctorDisplayName, type DoctorProfile } from "@/types/doctors";
+
+function doctorsFilterHref(filters: {
+  speciality?: string;
+  state?: string;
+  city?: string;
+}): string {
+  const params = new URLSearchParams();
+  if (filters.speciality?.trim()) params.set("speciality", filters.speciality.trim());
+  if (filters.state?.trim()) params.set("state", filters.state.trim());
+  if (filters.city?.trim()) params.set("city", filters.city.trim());
+  const query = params.toString();
+  return query ? `/doctors?${query}` : "/doctors";
+}
 
 type CredentialRow = {
   label: string;
@@ -17,14 +32,15 @@ function buildCredentialRows(doctor: DoctorProfile): CredentialRow[] {
   const experienceParts = [
     doctor.experienceYears > 0 ? `${doctor.experienceYears}+ years` : "",
     doctor.workHistory.trim(),
-    [doctor.city, doctor.state].filter(Boolean).join(", "),
   ].filter(Boolean);
   const experience = experienceParts.join(", ");
+  const location = [doctor.city, doctor.state].filter(Boolean).join(", ");
 
   return [
     specialty ? { label: "Specialty", value: specialty } : null,
     degrees ? { label: "Degrees", value: degrees } : null,
     experience ? { label: "Experience", value: experience } : null,
+    location ? { label: "Location", value: location } : null,
   ].filter((row): row is CredentialRow => row != null);
 }
 
@@ -44,9 +60,12 @@ export function DoctorDetailsHero({ doctor }: DoctorDetailsHeroProps) {
         <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14 xl:gap-16">
           <div className="min-w-0">
             {badge ? (
-              <span className="inline-flex rounded-full bg-[#d9ecee] px-3.5 py-1.5 text-xs font-semibold tracking-wide text-[#168b91]">
+              <Link
+                href={doctorsFilterHref({ speciality: badge })}
+                className="inline-flex rounded-full bg-[#d9ecee] px-3.5 py-1.5 text-xs font-semibold tracking-wide text-[#168b91] transition-colors hover:bg-[#c5e2e5]"
+              >
                 {badge}
-              </span>
+              </Link>
             ) : null}
 
             <h1
@@ -61,6 +80,8 @@ export function DoctorDetailsHero({ doctor }: DoctorDetailsHeroProps) {
                 {doctor.about.trim()}
               </p>
             ) : null}
+
+            <DoctorDetailsBooking doctor={doctor} />
 
             {credentials.length > 0 ? (
               <dl className="mt-8 space-y-1">
@@ -80,7 +101,34 @@ export function DoctorDetailsHero({ doctor }: DoctorDetailsHeroProps) {
                           {row.label}
                         </dt>
                         <dd className="text-sm leading-relaxed text-[#4b5563]">
-                          {row.value}
+                          {row.label === "Specialty" ? (
+                            <span className="flex flex-wrap gap-x-2 gap-y-1">
+                              {doctor.specializations
+                                .map((item) => item.trim())
+                                .filter(Boolean)
+                                .map((item) => (
+                                  <Link
+                                    key={item}
+                                    href={doctorsFilterHref({ speciality: item })}
+                                    className="font-medium text-[#168b91] underline-offset-2 hover:underline"
+                                  >
+                                    {item}
+                                  </Link>
+                                ))}
+                            </span>
+                          ) : row.label === "Location" ? (
+                            <Link
+                              href={doctorsFilterHref({
+                                state: doctor.state,
+                                city: doctor.city,
+                              })}
+                              className="font-medium text-[#168b91] underline-offset-2 hover:underline"
+                            >
+                              {row.value}
+                            </Link>
+                          ) : (
+                            row.value
+                          )}
                         </dd>
                       </div>
                     </div>
@@ -98,7 +146,12 @@ export function DoctorDetailsHero({ doctor }: DoctorDetailsHeroProps) {
                       <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#168b91] text-white">
                         <Check className="size-3" strokeWidth={3} aria-hidden />
                       </span>
-                      <span>{skill}</span>
+                      <Link
+                        href={doctorsFilterHref({ speciality: skill })}
+                        className="font-medium text-[#168b91] underline-offset-2 hover:underline"
+                      >
+                        {skill}
+                      </Link>
                     </li>
                   ))}
                 </ul>

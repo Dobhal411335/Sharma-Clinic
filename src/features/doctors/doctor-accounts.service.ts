@@ -44,7 +44,7 @@ function emptyProfile(name: string, email: string, phone: string) {
   return {
     name: formatDoctorDisplayName(name),
     specializations: ["General"],
-    about: "Profile details pending.",
+    about: "",
     experienceYears: 0,
     state: "",
     city: "",
@@ -55,7 +55,7 @@ function emptyProfile(name: string, email: string, phone: string) {
     degree: "",
     workHistory: "",
     workDays: "",
-    photoUrl: "https://placehold.co/800x1000/png?text=Doctor",
+    photoUrl: "",
     photoPublicId: "",
     active: false,
     order: 0,
@@ -142,7 +142,7 @@ export async function createDoctorAccount(
     throw new Error("Passcode must be at least 4 characters.");
   }
 
-  consumeEmailVerifiedToken(email, input.emailVerificationToken);
+  await consumeEmailVerifiedToken(email, input.emailVerificationToken);
 
   const [emailTaken, passcodeTaken] = await Promise.all([
     prisma.user.findUnique({ where: { email }, select: { id: true } }),
@@ -208,7 +208,9 @@ export async function createDoctorAccount(
 export async function getDoctorAccount(userId: string): Promise<DoctorAccountDetail> {
   const user = await prisma.user.findFirst({
     where: { id: userId, role: "DOCTOR" },
-    include: { doctor: { select: { id: true } } },
+    include: {
+      doctor: { select: { id: true, consultationFeePaise: true } },
+    },
   });
   if (!user) throw new Error("Doctor account not found.");
 
@@ -244,6 +246,7 @@ export async function getDoctorAccount(userId: string): Promise<DoctorAccountDet
       photoPublicId: String(profileSource.photoPublicId ?? ""),
       active: Boolean(profileSource.active),
       order: Number(profileSource.order ?? 0) || 0,
+      consultationFeePaise: user.doctor?.consultationFeePaise ?? 0,
     },
   };
 }
@@ -298,7 +301,18 @@ export async function approveDoctorAccount(
     });
   }
 
+  // Public landing /doctors reads CMS `active`, not Prisma approval flags.
+  // Publish the linked profile on approve; it still needs a photo to appear.
   const cms = await findCmsProfileByStaffUserId(updated.id);
+  if (cms) {
+    await replaceItem("doctor-profile", cms.id, {
+      ...cms,
+      active: true,
+      staffUserId: updated.id,
+      staffDoctorId: updated.doctor?.id ?? null,
+    } as JsonRecord);
+  }
+
   return {
     ...toListItem(updated, cms?.id ?? null),
     passwordForEmail: password,
@@ -398,17 +412,33 @@ export async function updateDoctorAccount(
     },
   });
 
-  if (displayName && user.doctor) {
-    await prisma.doctor.update({
-      where: { id: user.doctor.id },
-      data: { displayName },
-    });
+  if (user.doctor) {
+    const doctorData: {
+      displayName?: string;
+      consultationFeePaise?: number;
+    } = {};
+    if (displayName) doctorData.displayName = displayName;
+    if (
+      input.profile?.consultationFeePaise !== undefined &&
+      Number.isInteger(input.profile.consultationFeePaise) &&
+      input.profile.consultationFeePaise >= 0
+    ) {
+      doctorData.consultationFeePaise = input.profile.consultationFeePaise;
+    }
+    if (Object.keys(doctorData).length > 0) {
+      await prisma.doctor.update({
+        where: { id: user.doctor.id },
+        data: doctorData,
+      });
+    }
   }
 
   if (input.profile) {
     const cms = await findCmsProfileByStaffUserId(user.id);
+    const { consultationFeePaise: _fee, ...profileWithoutFee } = input.profile;
+    void _fee;
     const payload = {
-      ...input.profile,
+      ...profileWithoutFee,
       name: formatDoctorDisplayName(input.profile.name),
       email: user.email,
       staffUserId: user.id,

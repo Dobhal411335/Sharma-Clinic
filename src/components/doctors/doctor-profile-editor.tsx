@@ -52,7 +52,6 @@ type DoctorProfileEditorProps = {
   }) => Promise<void>;
   loadAvailability: () => Promise<DoctorAvailabilityDto>;
   saveAvailability: (payload: DoctorAvailabilityPayload) => Promise<void>;
-  onSavedRedirect?: () => void;
 };
 
 function phoneDigits(value: string): string {
@@ -96,7 +95,6 @@ export function DoctorProfileEditor({
   saveAccount,
   loadAvailability,
   saveAvailability,
-  onSavedRedirect,
 }: DoctorProfileEditorProps) {
   const credentialsEditable = mode === "admin";
   const [section, setSection] = useState<EditorSection>("login");
@@ -138,6 +136,9 @@ export function DoctorProfileEditor({
       photoPublicId: account.profile.photoPublicId,
       active: account.profile.active,
       order: String(account.profile.order ?? ""),
+      consultationFeeInr: String(
+        Math.floor((account.profile.consultationFeePaise ?? 0) / 100),
+      ),
     });
     setPassword(account.passwordPrefill ?? "");
     setPasscode(account.passcode);
@@ -215,10 +216,15 @@ export function DoctorProfileEditor({
               passcode: passcode.trim() || undefined,
             }
           : {}),
-        profile: payload,
+        profile: {
+          ...payload,
+          prefix: validated.data.prefix || "Dr.",
+          order: payload.order ?? 0,
+          consultationFeePaise: payload.consultationFeePaise ?? 0,
+        },
       });
       showSuccess("Doctor details saved.");
-      onSavedRedirect?.();
+      await hydrateAccount();
     } catch (error) {
       showError(
         error instanceof ApiError ? error.message : "Could not save doctor details.",
@@ -405,6 +411,7 @@ export function DoctorProfileEditor({
                 isSubmitting={isSubmitting}
                 isEditing
                 editingId={mode === "admin" ? "admin-edit" : "doctor-self"}
+                feeEditable={mode === "admin"}
                 onChange={setValues}
                 onSubmit={onSubmitProfile}
                 onReset={() => void hydrateAccount()}

@@ -9,13 +9,18 @@ describe("admin sidebar", () => {
     expect(new Set(hrefs).size).toBe(hrefs.length);
   });
 
-  it("finds a nested report and its breadcrumb", () => {
-    expect(findAdminNavItem("/admin/reports/gateway/success")?.title).toBe("Success");
-    expect(findAdminTrail("/admin/reports/day/next-day")?.map((item) => item.title)).toEqual([
-      "Appointment Order Report",
-      "Day Appointment Report",
-      "Post For Next Day",
+  it("exposes Booking Order as a top-level destination", () => {
+    expect(findAdminNavItem("/admin/bookings")?.title).toBe("Booking Order");
+    expect(findAdminTrail("/admin/bookings")?.map((item) => item.title)).toEqual([
+      "Booking Order",
     ]);
+  });
+
+  it("no longer lists the old appointment report tree", () => {
+    const hrefs = listAdminDestinations(adminNav).map((item) => item.href);
+    expect(hrefs).not.toContain("/admin/reports/gateway/success");
+    expect(hrefs).not.toContain("/admin/reports/revenue");
+    expect(hrefs).not.toContain("/admin/reports/day/confirm");
   });
 
   it("returns null for an unknown admin path", () => {

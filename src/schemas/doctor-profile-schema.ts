@@ -115,6 +115,16 @@ export function validateDoctorProfileForm(
     }
   }
 
+  const feeInr = Number(values.consultationFeeInr);
+  if (
+    values.consultationFeeInr.trim() === "" ||
+    !Number.isFinite(feeInr) ||
+    !Number.isInteger(feeInr) ||
+    feeInr < 0
+  ) {
+    errors.consultationFeeInr = "Enter a fee of 0 or more whole rupees";
+  }
+
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
@@ -167,5 +177,6 @@ export function toDoctorProfilePayload(
     active: values.active,
     order:
       values.order.trim() === "" ? fallbackOrder : Number(values.order),
+    consultationFeePaise: Math.max(0, Number(values.consultationFeeInr) || 0) * 100,
   };
 }

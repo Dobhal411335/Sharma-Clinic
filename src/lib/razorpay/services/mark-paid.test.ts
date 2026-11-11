@@ -34,6 +34,7 @@ describe("markPaymentPaid", () => {
       providerPaymentId: "pay_rzp_old",
       activeAppointmentId: null,
     });
+    const appointmentUpdate = vi.fn().mockResolvedValue({});
 
     dbMock.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
       const tx = {
@@ -51,7 +52,7 @@ describe("markPaymentPaid", () => {
           updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
         appointment: {
-          update: vi.fn().mockResolvedValue({}),
+          update: appointmentUpdate,
         },
       };
       return fn(tx);
@@ -66,7 +67,55 @@ describe("markPaymentPaid", () => {
 
     expect(result.newlyPaid).toBe(true);
     expect(result.payment.needsReconciliation).toBe(true);
+    expect(appointmentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { status: "PENDING" },
+      }),
+    );
     expect(notifyMock).toHaveBeenCalled();
+  });
+
+  it("sets appointment to PENDING (awaiting admin) on first successful pay", async () => {
+    const payment = makePayment({
+      id: "pay_2",
+      status: "ORDER_CREATED",
+      providerPaymentId: null,
+    });
+    const appointmentUpdate = vi.fn().mockResolvedValue({});
+
+    dbMock.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+      const tx = {
+        payment: {
+          findUnique: vi.fn().mockResolvedValue(payment),
+          findFirst: vi.fn().mockResolvedValue(null),
+          update: vi.fn().mockResolvedValue({
+            ...payment,
+            status: "PAID",
+            providerPaymentId: "pay_rzp_2",
+            paidAt: new Date(),
+            activeAppointmentId: null,
+          }),
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
+        appointment: {
+          update: appointmentUpdate,
+        },
+      };
+      return fn(tx);
+    });
+
+    await markPaymentPaid({
+      paymentId: "pay_2",
+      providerPaymentId: "pay_rzp_2",
+      source: "verify",
+    });
+
+    expect(appointmentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: payment.appointmentId },
+        data: { status: "PENDING" },
+      }),
+    );
   });
 
   it("7 idempotent when already PAID", async () => {

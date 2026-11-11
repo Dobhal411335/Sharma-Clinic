@@ -52,29 +52,54 @@ export const emptyDoctorPageConfig = (): DoctorPageConfig => ({
  */
 async function loadDoctorProfiles(): Promise<DoctorProfile[]> {
   const { listItems } = await import("@/features/cms/store");
+  const { prisma } = await import("@/lib/db/prisma");
   const items = (await listItems("doctor-profile")) as unknown as DoctorProfile[];
+  const staffIds = items
+    .map((item) =>
+      typeof (item as { staffDoctorId?: unknown }).staffDoctorId === "string"
+        ? (item as { staffDoctorId: string }).staffDoctorId
+        : null,
+    )
+    .filter((id): id is string => Boolean(id));
+  const feeRows =
+    staffIds.length > 0
+      ? await prisma.doctor.findMany({
+          where: { id: { in: staffIds } },
+          select: { id: true, consultationFeePaise: true },
+        })
+      : [];
+  const feeById = new Map(
+    feeRows.map((row) => [row.id, row.consultationFeePaise] as const),
+  );
+
   return items
-    .map((item) => ({
-      ...item,
-      specializations: Array.isArray(item.specializations)
-        ? item.specializations.filter(Boolean)
-        : [],
-      phone: item.phone ?? "",
-      email: item.email ?? "",
-      location: item.location ?? "",
-      education: item.education ?? "",
-      degree: item.degree ?? "",
-      workHistory: item.workHistory ?? "",
-      workDays: item.workDays ?? "",
-      staffDoctorId:
+    .map((item) => {
+      const staffDoctorId =
         typeof (item as { staffDoctorId?: unknown }).staffDoctorId === "string"
           ? (item as { staffDoctorId: string }).staffDoctorId
-          : null,
-      staffUserId:
-        typeof (item as { staffUserId?: unknown }).staffUserId === "string"
-          ? (item as { staffUserId: string }).staffUserId
-          : null,
-    }))
+          : null;
+      return {
+        ...item,
+        specializations: Array.isArray(item.specializations)
+          ? item.specializations.filter(Boolean)
+          : [],
+        phone: item.phone ?? "",
+        email: item.email ?? "",
+        location: item.location ?? "",
+        education: item.education ?? "",
+        degree: item.degree ?? "",
+        workHistory: item.workHistory ?? "",
+        workDays: item.workDays ?? "",
+        staffDoctorId,
+        staffUserId:
+          typeof (item as { staffUserId?: unknown }).staffUserId === "string"
+            ? (item as { staffUserId: string }).staffUserId
+            : null,
+        consultationFeePaise: staffDoctorId
+          ? (feeById.get(staffDoctorId) ?? 0)
+          : 0,
+      };
+    })
     .filter(
       (item) => item.active && item.name && item.photoUrl && item.specializations.length > 0,
     );

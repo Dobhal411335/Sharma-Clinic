@@ -28,6 +28,8 @@ const profileSchema = z.object({
   photoPublicId: z.string().trim().max(500).default(""),
   active: z.boolean(),
   order: z.coerce.number().int().min(0).max(10_000).optional(),
+  /** Stored on Prisma Doctor only; never trust client for doctor self-edit. */
+  consultationFeePaise: z.number().int().min(0).max(10_000_000).optional(),
 });
 
 const updateSchema = z.object({

@@ -15,13 +15,14 @@ Set these in the Coolify service environment (secrets marked ★):
 | `AUTH_URL` | `https://your-domain` (public HTTPS origin, no trailing slash) |
 | `AUTH_TRUST_HOST` | `true` (see below) |
 | `NEXT_PUBLIC_APP_URL` | Same public HTTPS origin as `AUTH_URL` |
-| `INITIAL_ADMIN_EMAIL` ★ | Used once by seed |
-| `INITIAL_ADMIN_PASSWORD` ★ | Used once by seed; never logged |
-| `INITIAL_ADMIN_NAME` | Display name for first admin |
+| `SEED_ADMIN_EMAIL` ★ | Used once by seed |
+| `SEED_ADMIN_PASSWORD` ★ | Used once by seed; never logged |
+| `SEED_ADMIN_NAME` | Display name for first admin |
 | `NODE_ENV` | `production` (Coolify usually sets this) |
 
-Also configure provider keys as needed: Razorpay, Cloudinary, Brevo,
-clinic contact placeholders. See `.env.example`.
+Also configure provider keys as needed: Razorpay, Cloudinary, Brevo.
+Clinic phone/address/email come from admin Company Basic Info, not env.
+See `.env.example`.
 
 **Never** put secrets in `NEXT_PUBLIC_*` names except intentionally public
 values (`NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`).

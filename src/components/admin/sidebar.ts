@@ -192,59 +192,10 @@ export const adminNav: AdminNavItem[] = [
     ],
   },
   {
-    title: "Appointment Order Report",
+    title: "Booking Order",
+    href: "/admin/bookings",
     icon: "clipboard-list",
-    description: "Payment gateway results, revenue, and day appointment lists.",
-    children: [
-      {
-        title: "Gateway Report",
-        icon: "landmark",
-        children: [
-          {
-            title: "Success",
-            href: "/admin/reports/gateway/success",
-            icon: "circle-check",
-            description: "Paid payment attempts.",
-          },
-          {
-            title: "Failure",
-            href: "/admin/reports/gateway/failure",
-            icon: "circle-x",
-            description: "Failed payment attempts.",
-          },
-          {
-            title: "Booked",
-            href: "/admin/reports/gateway/booked",
-            icon: "calendar-check",
-            description: "Booked appointments in the gateway report.",
-          },
-        ],
-      },
-      {
-        title: "Revenue Management Dashboard",
-        href: "/admin/reports/revenue",
-        icon: "indian-rupee",
-        description: "Collected consultation fees.",
-      },
-      {
-        title: "Day Appointment Report",
-        icon: "calendar-days",
-        children: [
-          {
-            title: "Confirm",
-            href: "/admin/reports/day/confirm",
-            icon: "check",
-            description: "Appointments to confirm for the day.",
-          },
-          {
-            title: "Post For Next Day",
-            href: "/admin/reports/day/next-day",
-            icon: "calendar-plus",
-            description: "Appointments to carry to the next day.",
-          },
-        ],
-      },
-    ],
+    description: "Review paid bookings and accept or decline appointments.",
   },
 ];
 

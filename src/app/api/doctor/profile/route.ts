@@ -91,6 +91,7 @@ export async function PATCH(request: Request) {
 
   try {
     const body = updateSchema.parse(payload.body);
+    // Doctors cannot change their own consultation fee (field omitted from schema).
     const data = await updateDoctorAccount(authResult.userId, {
       name: body.name,
       phone: body.phone,

@@ -30,6 +30,9 @@ if (existing && isStalePrismaClient(existing)) {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
+/** Alias used by Razorpay integration services. */
+export const db = prisma;
+
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
