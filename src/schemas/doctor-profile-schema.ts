@@ -1,4 +1,8 @@
+import { isFilledText } from "@/features/webpages/utils/is-filled-text";
 import { isIndiaState } from "@/lib/india-states";
+import {
+  sanitizeQualificationCards,
+} from "@/schemas/doctor-qualification";
 import type {
   DoctorProfileFormValues,
   DoctorProfilePayload,
@@ -63,7 +67,7 @@ export function validateDoctorProfileForm(
   if (specializations.length === 0) {
     errors.specializations = "Add at least one specialization";
   }
-  if (!values.about.trim()) errors.about = "About is required";
+  if (!isFilledText(values.about)) errors.about = "About is required";
 
   const phoneDigits = values.phone.replace(/\D/g, "");
   if (!phoneDigits) {
@@ -125,6 +129,14 @@ export function validateDoctorProfileForm(
     errors.consultationFeeInr = "Enter a fee of 0 or more whole rupees";
   }
 
+  if (values.qualificationTitle.trim().length > 200) {
+    errors.qualificationTitle = "Section title must be 200 characters or fewer";
+  }
+
+  if (values.qualificationCards.length > 30) {
+    errors.qualificationCards = "Add at most 30 qualification cards";
+  }
+
   if (Object.keys(errors).length > 0) {
     return { success: false, errors };
   }
@@ -140,10 +152,8 @@ export function validateDoctorProfileForm(
       phone: phoneDigits,
       email: values.email.trim().toLowerCase(),
       location: values.location.trim(),
-      education: values.education.trim(),
-      degree: values.degree.trim(),
-      workHistory: values.workHistory.trim(),
-      workDays: values.workDays.trim(),
+      qualificationTitle: values.qualificationTitle.trim() || "Qualification",
+      qualificationCards: values.qualificationCards,
       state: values.state.trim(),
       city: values.city.trim(),
     },
@@ -168,10 +178,8 @@ export function toDoctorProfilePayload(
     phone: `+91 ${values.phone.replace(/\D/g, "")}`,
     email: values.email.trim().toLowerCase(),
     location: values.location.trim(),
-    education: values.education.trim(),
-    degree: values.degree.trim(),
-    workHistory: values.workHistory.trim(),
-    workDays: values.workDays.trim(),
+    qualificationTitle: values.qualificationTitle.trim() || "Qualification",
+    qualificationCards: sanitizeQualificationCards(values.qualificationCards),
     photoUrl: values.photoUrl.trim(),
     photoPublicId: values.photoPublicId.trim(),
     active: values.active,

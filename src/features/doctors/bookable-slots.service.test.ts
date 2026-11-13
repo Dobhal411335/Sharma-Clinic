@@ -36,10 +36,12 @@ describe("listBookableSlots / assertSlotIsBookable", () => {
     appointmentFindMany.mockResolvedValue([]);
     weeklyFindMany.mockResolvedValue([
       {
+        id: "win_1",
         weekday: "MONDAY",
         startTimeLocal: "09:00",
         endTimeLocal: "09:30",
         slotDurationMinutes: 10,
+        scope: "FIXED",
         isActive: true,
         effectiveFrom: null,
         effectiveUntil: null,

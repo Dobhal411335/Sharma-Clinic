@@ -1,8 +1,16 @@
+export type DoctorQualificationCard = {
+  id: string;
+  heading: string;
+  /** TipTap / CMS HTML blocks. */
+  descriptions: string[];
+};
+
 export type DoctorProfile = {
   id: string;
   siteCode: "IN" | "COM";
   name: string;
   specializations: string[];
+  /** TipTap / CMS HTML. */
   about: string;
   experienceYears: number;
   state: string;
@@ -10,10 +18,8 @@ export type DoctorProfile = {
   phone: string;
   email: string;
   location: string;
-  education: string;
-  degree: string;
-  workHistory: string;
-  workDays: string;
+  qualificationTitle: string;
+  qualificationCards: DoctorQualificationCard[];
   photoUrl: string;
   active: boolean;
   order: number;

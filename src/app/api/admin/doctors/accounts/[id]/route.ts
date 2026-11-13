@@ -9,21 +9,25 @@ import { jsonData, jsonMessage, readJson, requireCmsAdmin, zodMessage } from "@/
 
 type RouteContext = { params: Promise<{ id: string }> };
 
+const qualificationCardSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  heading: z.string().trim().max(200).default(""),
+  descriptions: z.array(z.string().max(50_000)).max(20).default([]),
+});
+
 const profileSchema = z.object({
   prefix: z.string().trim().max(40).optional(),
   name: z.string().trim().min(1).max(200),
   specializations: z.array(z.string().trim().min(1).max(120)).min(1).max(20),
-  about: z.string().trim().min(1).max(20_000),
+  about: z.string().trim().min(1).max(100_000),
   experienceYears: z.coerce.number().int().min(0).max(80),
   state: z.string().trim().max(120).default(""),
   city: z.string().trim().max(120).default(""),
   phone: z.string().trim().max(30).default(""),
   email: z.string().trim().max(320).default(""),
   location: z.string().trim().max(500).default(""),
-  education: z.string().max(10_000).default(""),
-  degree: z.string().max(10_000).default(""),
-  workHistory: z.string().max(20_000).default(""),
-  workDays: z.string().max(2000).default(""),
+  qualificationTitle: z.string().trim().max(200).default("Qualification"),
+  qualificationCards: z.array(qualificationCardSchema).max(30).default([]),
   photoUrl: z.string().trim().min(1).max(2000),
   photoPublicId: z.string().trim().max(500).default(""),
   active: z.boolean(),

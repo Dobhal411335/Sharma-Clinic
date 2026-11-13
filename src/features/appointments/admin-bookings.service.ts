@@ -20,15 +20,6 @@ import type {
 
 const REVIEW_STATUSES: AppointmentStatus[] = ["PENDING", "ACCEPTED", "DECLINED"];
 
-function clinicTodayIso(now = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
-}
-
 function clinicDayBounds(isoDate: string): { start: Date; end: Date } {
   // Asia/Kolkata = UTC+05:30
   const start = new Date(`${isoDate}T00:00:00+05:30`);
@@ -90,29 +81,37 @@ function toListItem(
   };
 }
 
-async function buildSummary(day: string): Promise<BookingOrderSummary> {
-  const { start, end } = clinicDayBounds(day);
-  const dayFilter: Prisma.AppointmentWhereInput = {
-    startsAt: { gte: start, lte: end },
-  };
+async function buildSummary(input: {
+  date?: string;
+  doctorId?: string;
+}): Promise<BookingOrderSummary> {
+  // Match list scope (date + doctor). Ignore status filter so cards stay an overview.
+  const baseWhere: Prisma.AppointmentWhereInput = {};
+  if (input.date) {
+    const { start, end } = clinicDayBounds(input.date);
+    baseWhere.startsAt = { gte: start, lte: end };
+  }
+  if (input.doctorId?.trim()) {
+    baseWhere.doctorId = input.doctorId.trim();
+  }
 
   const [todayCount, paidCount, pendingAcceptanceCount, declinedCount, pendingPaymentCount] =
     await Promise.all([
-      prisma.appointment.count({ where: dayFilter }),
+      prisma.appointment.count({ where: baseWhere }),
       prisma.appointment.count({
         where: {
-          ...dayFilter,
+          ...baseWhere,
           payments: { some: { status: "PAID" } },
         },
       }),
       prisma.appointment.count({
-        where: { ...dayFilter, status: "PENDING" },
+        where: { ...baseWhere, status: "PENDING" },
       }),
       prisma.appointment.count({
-        where: { ...dayFilter, status: "DECLINED" },
+        where: { ...baseWhere, status: "DECLINED" },
       }),
       prisma.appointment.count({
-        where: { ...dayFilter, status: "PENDING_PAYMENT" },
+        where: { ...baseWhere, status: "PENDING_PAYMENT" },
       }),
     ]);
 
@@ -135,15 +134,17 @@ export type ListAdminBookingsInput = {
 export async function listAdminBookings(
   input: ListAdminBookingsInput = {},
 ): Promise<BookingOrderListResult> {
-  const date = (input.date?.trim() || clinicTodayIso()).slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  const dateRaw = input.date?.trim() ?? "";
+  const date = dateRaw ? dateRaw.slice(0, 10) : "";
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     throw new Error("date must be YYYY-MM-DD.");
   }
 
-  const { start, end } = clinicDayBounds(date);
-  const where: Prisma.AppointmentWhereInput = {
-    startsAt: { gte: start, lte: end },
-  };
+  const where: Prisma.AppointmentWhereInput = {};
+  if (date) {
+    const { start, end } = clinicDayBounds(date);
+    where.startsAt = { gte: start, lte: end };
+  }
 
   if (input.status && input.status !== "ALL") {
     where.status = input.status;
@@ -151,6 +152,8 @@ export async function listAdminBookings(
   if (input.doctorId?.trim()) {
     where.doctorId = input.doctorId.trim();
   }
+
+  const doctorId = input.doctorId?.trim() || undefined;
 
   const [rows, summary, doctors] = await Promise.all([
     prisma.appointment.findMany({
@@ -162,9 +165,10 @@ export async function listAdminBookings(
           orderBy: { createdAt: "desc" },
         },
       },
-      orderBy: [{ startsAt: "asc" }, { createdAt: "desc" }],
+      orderBy: [{ startsAt: "desc" }, { createdAt: "desc" }],
+      ...(date ? {} : { take: 200 }),
     }),
-    buildSummary(date),
+    buildSummary({ date: date || undefined, doctorId }),
     prisma.doctor.findMany({
       where: { isActive: true },
       select: { id: true, displayName: true },
@@ -200,6 +204,10 @@ export async function getAdminBooking(id: string): Promise<BookingOrderDetail> {
     cancellationReason: row.cancellationReason,
     confirmedAt: row.confirmedAt?.toISOString() ?? null,
     cancelledAt: row.cancelledAt?.toISOString() ?? null,
+    completedAt: row.completedAt?.toISOString() ?? null,
+    updatedAt: row.updatedAt.toISOString(),
+    medicalHistoryImageUrl: row.medicalHistoryImageUrl,
+    medicalHistoryImagePublicId: row.medicalHistoryImagePublicId,
     payment: latestPaid
       ? {
           id: latestPaid.id,

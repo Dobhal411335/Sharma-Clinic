@@ -92,7 +92,7 @@ export function DoctorProfileTable({
                     <td className="px-3 py-4">
                       <p className="font-medium text-foreground">{doctor.name}</p>
                       <p className="mt-1 line-clamp-2 max-w-xs text-xs text-muted-foreground">
-                        {doctor.about}
+                        {doctor.about.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
                       </p>
                     </td>
                     <td className="px-3 py-4 text-muted-foreground">

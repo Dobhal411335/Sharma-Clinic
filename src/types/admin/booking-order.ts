@@ -50,6 +50,10 @@ export type BookingOrderDetail = BookingOrderListItem & {
   cancellationReason: string | null;
   confirmedAt: string | null;
   cancelledAt: string | null;
+  completedAt: string | null;
+  updatedAt: string;
+  medicalHistoryImageUrl: string | null;
+  medicalHistoryImagePublicId: string | null;
   payment: {
     id: string;
     status: BookingPaymentStatus;

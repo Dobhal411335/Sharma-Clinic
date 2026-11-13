@@ -192,10 +192,10 @@ export const adminNav: AdminNavItem[] = [
     ],
   },
   {
-    title: "Booking Order",
-    href: "/admin/bookings",
+    title: "Doctor Appointments",
+    href: "/admin/appointments",
     icon: "clipboard-list",
-    description: "Review paid bookings and accept or decline appointments.",
+    description: "Review doctor appointments and accept or decline appointments.",
   },
 ];
 

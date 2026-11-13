@@ -262,7 +262,7 @@ function DoctorBannerSlide({
   const callHref = telHref(slide.callNumber);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#123d67]">
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#c5d8e6]">
       {bgSrc ? (
         <Image
           src={bgSrc}
@@ -273,84 +273,110 @@ function DoctorBannerSlide({
           priority={priority}
         />
       ) : null}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0b2433]/45 via-[#0b2433]/15 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-transparent" />
 
-      <div className="relative z-10 flex min-h-screen w-full items-end px-4 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-14">
-        <div className="grid w-full max-w-xl gap-3 lg:grid-cols-2">
-          <article className="rounded-2xl border border-white/70 bg-white/85 p-4 shadow-[0_14px_28px_rgba(12,40,55,.16)] backdrop-blur-md sm:p-5 lg:col-span-2 lg:max-w-md">
+      <div className="relative z-10 flex min-h-screen w-full items-end px-4 pb-10 pt-28 sm:px-8 sm:pb-12 lg:px-14 lg:pb-16">
+        <div className="flex w-full max-w-xl flex-col gap-4 sm:max-w-5xl lg:w-1/2 lg:max-w-5xl">
+          <article
+            className="rounded-[1.75rem] border border-white p-6 shadow-[0_18px_40px_rgba(18,48,72,.16)] sm:rounded-[2rem] sm:p-7 lg:p-8"
+            style={{
+              backgroundColor: "rgba(236, 245, 252, 0.82)",
+              backdropFilter: "blur(18px)",
+              WebkitBackdropFilter: "blur(18px)",
+            }}
+          >
             {slide.miniHeading ? (
-              <p className="text-[10px] font-semibold tracking-[0.16em] text-primary uppercase">
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-primary uppercase">
                 {slide.miniHeading}
               </p>
             ) : null}
-            <h1 className="mt-2 text-xl font-semibold leading-[1.12] tracking-[-0.03em] text-[#14272e] sm:text-2xl">
+            <h1 className="mt-3 text-[1.75rem] font-bold leading-[1.12] tracking-[-0.035em] text-[#0f2744] sm:text-[2.1rem]">
               {slide.mainHeading}
             </h1>
             {slide.description ? (
-              <p className="mt-2.5 text-xs leading-relaxed text-[#5f6f78] sm:text-sm">
+              <p className="mt-3 text-sm leading-relaxed text-[#5b6b7a]">
                 {slide.description}
               </p>
             ) : null}
             {slide.buttonLabel ? (
-              <Button
-                asChild
-                size="sm"
-                className="group mt-4 h-auto rounded-full bg-primary px-1.5 py-1.5 text-white hover:bg-primary/90"
+              <Link
+                href={slide.buttonUrl || "/doctors"}
+                className="group mt-6 inline-flex cursor-pointer items-center gap-3 rounded-full bg-primary px-5 py-1.5 pr-5 pl-1.5 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(22,139,145,0.28)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-[0_14px_28px_rgba(22,139,145,0.34)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45"
               >
-                <Link
-                  href={slide.buttonUrl || "/doctors"}
-                  className="relative inline-flex items-center"
-                >
-                  <span className="absolute top-1/2 left-1.5 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 transition-all duration-300 ease-out group-hover:left-[calc(100%-1.875rem)]">
-                    <ArrowRight className="size-3.5 transition-transform duration-300 ease-out group-hover:translate-x-0.5" />
-                  </span>
-                  <span className="px-3 py-1.5 pl-9 text-sm transition-all duration-300 ease-out group-hover:pr-9 group-hover:pl-3">
-                    {slide.buttonLabel}
-                  </span>
-                </Link>
-              </Button>
-            ) : null}
-          </article>
-
-          <article className="relative min-h-[120px] overflow-hidden rounded-2xl border border-white/70 bg-white/40 shadow-[0_10px_22px_rgba(12,40,55,.14)] sm:min-h-[140px]">
-            {slide.leftImageUrl ? (
-              <Image
-                src={slide.leftImageUrl}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 240px"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-gradient-to-br from-[#d7e8ef] to-[#b7cfd9]" />
-            )}
-          </article>
-
-          <article className="flex min-h-[120px] flex-col overflow-hidden rounded-2xl border border-white/70 bg-[#eef8f1]/95 shadow-[0_10px_22px_rgba(12,40,55,.14)] backdrop-blur-md sm:min-h-[140px]">
-            <div className="flex flex-1 flex-col p-3.5 sm:p-4">
-              {slide.secondaryHeading ? (
-                <h2 className="text-base font-semibold leading-snug tracking-[-0.02em] text-[#14272e] sm:text-lg">
-                  {slide.secondaryHeading}
-                </h2>
-              ) : null}
-              {slide.secondaryDescription ? (
-                <p className="mt-2 text-xs leading-relaxed text-[#5f6f78]">
-                  {slide.secondaryDescription}
-                </p>
-              ) : null}
-            </div>
-            {slide.callNumber ? (
-              <a
-                href={callHref}
-                className="mt-auto flex items-center gap-2.5 border-t border-[#cfe6d6] bg-[#e4f4ea] px-3.5 py-2.5 text-xs font-semibold text-[#2b8a68] transition hover:bg-[#d8efe1]"
-              >
-                <span className="flex size-7 items-center justify-center rounded-full bg-[#2b8a68] text-white">
-                  <Phone className="size-3.5" />
+                <span className="flex size-9 items-center justify-center rounded-full bg-white text-primary transition-transform duration-200 ease-out group-hover:scale-110">
+                  <ArrowRight className="size-4 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
                 </span>
-                <span>CALL: {slide.callNumber}</span>
-              </a>
+                <span>{slide.buttonLabel}</span>
+              </Link>
             ) : null}
           </article>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <article className="relative min-h-[12.5rem] overflow-hidden rounded-[1.5rem] border-2 border-white bg-white shadow-[0_12px_28px_rgba(18,48,72,.14)] sm:min-h-[14rem] sm:rounded-[1.75rem]">
+              {slide.leftImageUrl ? (
+                <Image
+                  src={slide.leftImageUrl}
+                  alt=""
+                  fill
+                  className="object-cover transition-transform duration-500 ease-out hover:scale-[1.04]"
+                  sizes="(max-width: 640px) 100vw, 280px"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#d7e8ef] to-[#b7cfd9]" />
+              )}
+            </article>
+
+            <article
+              className="relative flex min-h-[12.5rem] flex-col overflow-hidden rounded-[1.5rem] p-1 shadow-[0_12px_28px_rgba(18,48,72,.14)] sm:min-h-[14rem] sm:rounded-[1.75rem]"
+              style={{
+                backgroundColor: "rgba(232, 245, 239, 0.88)",
+                backdropFilter: "blur(18px)",
+                WebkitBackdropFilter: "blur(18px)",
+              }}
+            >
+              {/* Inner white border like the reference card */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-2 rounded-[1.15rem] border-2 border-white sm:inset-2.5 sm:rounded-[1.35rem]"
+              />
+              <div className="relative z-10 flex flex-1 flex-col p-4 sm:p-5">
+                {slide.secondaryHeading ? (
+                  <h2 className="text-lg font-bold leading-snug tracking-[-0.02em] text-[#0f2744] sm:text-xl">
+                    {slide.secondaryHeading}
+                  </h2>
+                ) : null}
+                {slide.secondaryDescription ? (
+                  <p className="mt-2 text-sm line-clamp-2 leading-relaxed text-[#4d6570] [&_strong]:font-bold [&_strong]:text-[#0f2744]">
+                    {slide.secondaryDescription
+                      .split(/(24\/7)/i)
+                      .map((part, index) =>
+                        /^24\/7$/i.test(part) ? (
+                          <strong key={index}>{part}</strong>
+                        ) : (
+                          <span key={index}>{part}</span>
+                        ),
+                      )}
+                  </p>
+                ) : null}
+              </div>
+              {slide.callNumber ? (
+                <div className="relative z-10 px-4 pb-4 sm:px-5 sm:pb-5">
+                  <a
+                    href={callHref}
+                    className="group flex cursor-pointer items-center gap-3 rounded-full bg-white px-2 py-2 pr-4 text-sm font-semibold text-[#0f4a52] shadow-[0_8px_18px_rgba(18,48,72,.1)] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(18,48,72,.14)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#3db88a] text-white transition-transform duration-200 ease-out group-hover:scale-110">
+                      <Phone className="size-4" />
+                    </span>
+                    <span className="tracking-wide">
+                      CALL:{" "}
+                      <span className="font-bold">{slide.callNumber}</span>
+                    </span>
+                  </a>
+                </div>
+              ) : null}
+            </article>
+          </div>
         </div>
       </div>
     </div>
@@ -559,29 +585,59 @@ function HeroCarousel({ slides }: { slides: StorefrontHeroSlide[] }) {
         </CarouselContent>
       </Carousel>
 
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        className="absolute top-1/2 left-2 z-20 size-12 -translate-y-1/2 rounded-full border-white/60 bg-black/35 text-white shadow-lg hover:bg-black/55 hover:text-white active:not-aria-[haspopup]:translate-y-0 sm:left-4 sm:size-14"
-        onClick={() => api?.scrollPrev()}
-        aria-label="Previous hero slide"
-      >
-        <ChevronLeft className="size-6 sm:size-7" />
-      </Button>
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        className="absolute top-1/2 right-2 z-20 size-12 -translate-y-1/2 rounded-full border-white/60 bg-black/35 text-white shadow-lg hover:bg-black/55 hover:text-white active:not-aria-[haspopup]:translate-y-0 sm:right-4 sm:size-14"
-        onClick={() => api?.scrollNext()}
-        aria-label="Next hero slide"
-      >
-        <ChevronRight className="size-6 sm:size-7" />
-      </Button>
+      {slides[selected]?.layoutType === "DOCTOR_BANNER" ? (
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 hidden w-[min(28vw,18rem)] items-end justify-center pb-16 lg:flex">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-white/70 bg-white/45 px-4 py-3 shadow-[0_14px_32px_rgba(18,48,72,.12)] backdrop-blur-xl">
+            <button
+              type="button"
+              className="flex size-11 cursor-pointer items-center justify-center rounded-full border border-white/80 bg-white text-[#15263a] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+              onClick={() => api?.scrollPrev()}
+              aria-label="Previous hero slide"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              type="button"
+              className="flex size-11 cursor-pointer items-center justify-center rounded-full border border-white/80 bg-white text-[#15263a] shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
+              onClick={() => api?.scrollNext()}
+              aria-label="Next hero slide"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="absolute top-1/2 left-2 z-20 size-12 -translate-y-1/2 rounded-full border-white/60 bg-black/35 text-white shadow-lg hover:bg-black/55 hover:text-white active:not-aria-[haspopup]:translate-y-0 sm:left-4 sm:size-14"
+            onClick={() => api?.scrollPrev()}
+            aria-label="Previous hero slide"
+          >
+            <ChevronLeft className="size-6 sm:size-7" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="absolute top-1/2 right-2 z-20 size-12 -translate-y-1/2 rounded-full border-white/60 bg-black/35 text-white shadow-lg hover:bg-black/55 hover:text-white active:not-aria-[haspopup]:translate-y-0 sm:right-4 sm:size-14"
+            onClick={() => api?.scrollNext()}
+            aria-label="Next hero slide"
+          >
+            <ChevronRight className="size-6 sm:size-7" />
+          </Button>
+        </>
+      )}
 
       <div
-        className="absolute inset-x-0 bottom-5 z-20 flex items-center justify-center gap-2.5"
+        className={[
+          "absolute z-20 flex items-center gap-2.5",
+          slides[selected]?.layoutType === "DOCTOR_BANNER"
+            ? "bottom-5 left-4 sm:left-8 lg:left-14"
+            : "inset-x-0 bottom-5 justify-center",
+        ].join(" ")}
         role="tablist"
         aria-label="Hero slides"
       >
@@ -595,9 +651,9 @@ function HeroCarousel({ slides }: { slides: StorefrontHeroSlide[] }) {
               aria-selected={active}
               aria-label={`Go to slide ${index + 1}`}
               className={[
-                "transition-all duration-300",
+                "cursor-pointer transition-all duration-300",
                 active
-                  ? "h-2.5 w-8 rounded-full bg-white"
+                  ? "h-2.5 w-8 rounded-full bg-white shadow-sm"
                   : "size-2.5 rounded-full bg-white/60 hover:bg-white",
               ].join(" ")}
               onClick={() => api?.scrollTo(index)}

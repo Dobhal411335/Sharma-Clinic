@@ -3,17 +3,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DoctorDetailsHero } from "@/components/doctors/doctor-details-hero";
-import { DoctorDetailsScheduleContact } from "@/components/doctors/doctor-details-schedule-contact";
+import { DoctorWeekScheduleSection } from "@/components/doctors/doctor-week-schedule";
 import { pageSeo } from "@/data/site";
-import { listPublicDoctorAvailability } from "@/features/doctors/doctor-availability.service";
+import { buildDoctorWeekSchedule } from "@/features/doctors/doctor-availability.service";
 import {
   getDoctorBySlug,
   getDoctorProfiles,
 } from "@/features/doctors/doctors.service";
+import { plainTextForShare } from "@/lib/share-text";
 import {
   doctorProfileSlug,
   formatDoctorDisplayName,
 } from "@/types/doctors";
+
+/** Week schedule must use the live clinic calendar, not a stale static build. */
+export const dynamic = "force-dynamic";
 
 type DoctorDetailsPageProps = {
   params: Promise<{ slug: string }>;
@@ -37,12 +41,9 @@ export async function generateMetadata({
 
   const name = formatDoctorDisplayName(doctor.name);
   const specialty = doctor.specializations[0]?.trim();
+  const aboutText = plainTextForShare(doctor.about, 160);
   const description =
-    doctor.about
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 160) ||
-    (specialty ? `${name} — ${specialty}` : name);
+    aboutText || (specialty ? `${name} — ${specialty}` : name);
 
   return {
     title: name,
@@ -61,14 +62,18 @@ export default async function DoctorDetailsPage({
   }
 
   const displayName = formatDoctorDisplayName(doctor.name);
-  const scheduleWindows = doctor.staffDoctorId
-    ? await listPublicDoctorAvailability(doctor.staffDoctorId)
-    : [];
+  const weekSchedule =
+    doctor.staffDoctorId
+      ? await buildDoctorWeekSchedule({
+          doctorId: doctor.staffDoctorId,
+          doctorSlug: doctorProfileSlug(doctor.name),
+        })
+      : null;
 
   return (
-    <div className="bg-[#f8f5ee]">
-      <div className="container-page pt-10">
-        <nav className="text-md text-muted-foreground" aria-label="Breadcrumb">
+    <div className="bg-background">
+      <div className="container-page pt-8 sm:pt-10">
+        <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
           <Link href="/" className="hover:text-foreground">
             Home
           </Link>
@@ -82,14 +87,10 @@ export default async function DoctorDetailsPage({
       </div>
 
       <DoctorDetailsHero doctor={doctor} />
-      <DoctorDetailsScheduleContact
-        doctor={doctor}
-        scheduleWindows={scheduleWindows.map((window) => ({
-          weekday: window.weekday,
-          startTimeLocal: window.startTimeLocal,
-          endTimeLocal: window.endTimeLocal,
-        }))}
-      />
+
+      {weekSchedule ? (
+        <DoctorWeekScheduleSection doctor={doctor} schedule={weekSchedule} />
+      ) : null}
     </div>
   );
 }

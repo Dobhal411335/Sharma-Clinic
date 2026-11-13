@@ -1,5 +1,7 @@
 import type { StaffApprovalStatus } from "@prisma/client";
 
+import type { DoctorQualificationCard } from "@/types/doctors";
+
 export type DoctorAccountListItem = {
   id: string;
   doctorId: string | null;
@@ -30,10 +32,8 @@ export type DoctorAccountDetail = DoctorAccountListItem & {
     phone: string;
     email: string;
     location: string;
-    education: string;
-    degree: string;
-    workHistory: string;
-    workDays: string;
+    qualificationTitle: string;
+    qualificationCards: DoctorQualificationCard[];
     photoUrl: string;
     photoPublicId: string;
     active: boolean;
@@ -72,10 +72,8 @@ export type UpdateDoctorAccountInput = {
     phone: string;
     email: string;
     location: string;
-    education: string;
-    degree: string;
-    workHistory: string;
-    workDays: string;
+    qualificationTitle: string;
+    qualificationCards: DoctorQualificationCard[];
     photoUrl: string;
     photoPublicId: string;
     active: boolean;

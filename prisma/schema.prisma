@@ -89,6 +89,12 @@ enum AvailabilityExceptionType {
   OVERRIDE
 }
 
+enum AvailabilityScope {
+  FIXED
+  TEMPORARY
+  CUSTOM
+}
+
 enum MediaProvider {
   CLOUDINARY
 }
@@ -256,24 +262,27 @@ model Patient {
 // ─── Availability ────────────────────────────────────────────────────────────
 
 /// Recurring weekly windows in clinic-local wall-clock (`HH:mm`). Multiple rows/day OK.
+/// Layered by scope: Custom > Temporary > Fixed for a given booking date.
 model WeeklyAvailability {
-  id                  String    @id @default(cuid())
+  id                  String            @id @default(cuid())
   doctorId            String
-  doctor              Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  doctor              Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   weekday             Weekday
   startTimeLocal      String
   endTimeLocal        String
   slotDurationMinutes Int
   breakStartLocal     String?
   breakEndLocal       String?
+  scope               AvailabilityScope @default(FIXED)
   effectiveFrom       DateTime?
   effectiveUntil      DateTime?
-  isActive            Boolean   @default(true)
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   @@index([doctorId, weekday])
   @@index([doctorId, isActive])
+  @@index([doctorId, scope, isActive])
   @@map("weekly_availabilities")
 }
 
@@ -318,6 +327,9 @@ model Appointment {
   currency           String            @default("INR")
   reason             String?
   cancellationReason String?
+  /// Optional medical-history image uploaded during public booking (Cloudinary).
+  medicalHistoryImageUrl      String?
+  medicalHistoryImagePublicId String?
   /// Opaque ownership token for public booking flows (not a login).
   accessToken        String            @unique @default(cuid())
   cancelledAt        DateTime?

@@ -12,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { HtmlBlock } from "@/features/webpages/utils/html-block";
+import { isFilledText } from "@/features/webpages/utils/is-filled-text";
 import { formatDoctorDisplayName, type DoctorProfile } from "@/types/doctors";
 
 type DoctorProfileModalProps = {
@@ -60,13 +62,13 @@ export function DoctorProfileModal({
   onBookAppointment,
 }: DoctorProfileModalProps) {
   const phoneHref = doctor?.phone ? `tel:${doctor.phone.replace(/\s/g, "")}` : "";
-  const hasQualification = Boolean(
-    doctor &&
-      (doctor.education.trim() ||
-        doctor.degree.trim() ||
-        doctor.workHistory.trim() ||
-        doctor.workDays.trim()),
+  const qualificationCards = (doctor?.qualificationCards ?? []).filter(
+    (card) =>
+      card.heading.trim() ||
+      card.descriptions.some((description) => isFilledText(description)),
   );
+  const qualificationTitle =
+    doctor?.qualificationTitle.trim() || "Qualification";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,9 +132,12 @@ export function DoctorProfileModal({
                 ) : null}
               </DialogHeader>
 
-              {doctor.about.trim() ? (
+              {isFilledText(doctor.about) ? (
                 <Section title="About">
-                  <TextBlock value={doctor.about} />
+                  <HtmlBlock
+                    html={doctor.about}
+                    className="text-sm leading-relaxed text-foreground"
+                  />
                 </Section>
               ) : null}
 
@@ -197,35 +202,27 @@ export function DoctorProfileModal({
                 </Section>
               ) : null}
 
-              {hasQualification ? (
-                <Section title="Qualification">
+              {qualificationCards.length > 0 ? (
+                <Section title={qualificationTitle}>
                   <div className="divide-y divide-border">
-                    {doctor.education.trim() ? (
-                      <div className="py-3 first:pt-0 last:pb-0">
-                        <p className="text-sm font-semibold text-foreground">Education</p>
-                        <TextBlock value={doctor.education} />
+                    {qualificationCards.map((card) => (
+                      <div key={card.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
+                        {card.heading.trim() ? (
+                          <p className="text-sm font-semibold text-foreground">
+                            {card.heading.trim()}
+                          </p>
+                        ) : null}
+                        {card.descriptions
+                          .filter((description) => isFilledText(description))
+                          .map((description, index) => (
+                            <HtmlBlock
+                              key={`${card.id}-${index}`}
+                              html={description}
+                              className="text-sm leading-relaxed text-foreground"
+                            />
+                          ))}
                       </div>
-                    ) : null}
-                    {doctor.degree.trim() ? (
-                      <div className="py-3 first:pt-0 last:pb-0">
-                        <p className="text-sm font-semibold text-foreground">Degree</p>
-                        <TextBlock value={doctor.degree} />
-                      </div>
-                    ) : null}
-                    {doctor.workHistory.trim() ? (
-                      <div className="py-3 first:pt-0 last:pb-0">
-                        <p className="text-sm font-semibold text-foreground">
-                          Work history
-                        </p>
-                        <TextBlock value={doctor.workHistory} />
-                      </div>
-                    ) : null}
-                    {doctor.workDays.trim() ? (
-                      <div className="py-3 first:pt-0 last:pb-0">
-                        <p className="text-sm font-semibold text-foreground">Work days</p>
-                        <TextBlock value={doctor.workDays} />
-                      </div>
-                    ) : null}
+                    ))}
                   </div>
                 </Section>
               ) : null}

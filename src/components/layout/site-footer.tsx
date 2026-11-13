@@ -191,62 +191,80 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-border bg-surface">
       <div className="container-page grid gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start lg:gap-12">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-          <div>
-            <h2 className="mb-4 text-base font-semibold text-foreground">
-              Contact Us
-            </h2>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              {addresses.map((text) => (
-                <li key={text} className="flex items-start gap-2.5">
-                  <MapPin className="mt-0.5 size-4 shrink-0" aria-hidden />
-                  <span>{text}</span>
-                </li>
-              ))}
-              {phones.map((number) => (
-                <li key={number} className="flex items-start gap-2.5">
-                  <Phone className="mt-0.5 size-4 shrink-0" aria-hidden />
-                  <a
-                    href={`tel:+91${String(number).replace(/\D/g, "")}`}
-                    className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {formatPhone(number)}
-                  </a>
-                </li>
-              ))}
-              {emails.map((email) => (
-                <li key={email} className="flex items-start gap-2.5">
-                  <Mail className="mt-0.5 size-4 shrink-0" aria-hidden />
-                  <a
-                    href={`mailto:${email}`}
-                    className="hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {email}
-                  </a>
-                </li>
-              ))}
-            </ul>
+        <div className="flex flex-col gap-10">
+          <div className="rounded-md border border-[#e6e2db] bg-white px-5 py-6 sm:px-7 sm:py-7">
+            <div className="grid gap-6 sm:grid-cols-2 sm:gap-0">
+              <div className="sm:pr-8">
+                <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  Contact Us
+                </h2>
+                <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+                  {addresses.map((text) => (
+                    <li key={text} className="flex items-start gap-2.5">
+                      <MapPin
+                        className="mt-0.5 size-4 shrink-0 text-foreground"
+                        aria-hidden
+                      />
+                      <span>{text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="sm:border-l sm:border-[#e6e2db] sm:pl-8">
+                <ul className="flex h-full flex-col justify-center space-y-4 text-sm text-muted-foreground">
+                  {phones.map((number) => (
+                    <li key={number} className="flex items-center gap-2.5">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#f5f0e8] text-foreground">
+                        <Phone className="size-3.5" aria-hidden />
+                      </span>
+                      <a
+                        href={`tel:+91${String(number).replace(/\D/g, "")}`}
+                        className="font-semibold text-foreground hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {formatPhone(number)}
+                      </a>
+                    </li>
+                  ))}
+                  {emails.map((email) => (
+                    <li key={email} className="flex items-center gap-2.5">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#f5f0e8] text-foreground">
+                        <Mail className="size-3.5" aria-hidden />
+                      </span>
+                      <a
+                        href={`mailto:${email}`}
+                        className="break-all hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {email}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
 
-          {columns.map((column) => (
-            <div key={column.title}>
-              <h2 className="mb-4 text-base font-semibold text-foreground">
-                {column.title}
-              </h2>
-              <ul className="space-y-2.5 text-sm">
-                {column.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            {columns.map((column) => (
+              <div key={column.title}>
+                <h2 className="mb-4 text-base font-semibold text-foreground">
+                  {column.title}
+                </h2>
+                <ul className="space-y-2.5 text-[15px]">
+                  {column.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:underline"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
         <aside className="rounded bg-white p-6">

@@ -63,7 +63,11 @@ function baseAppointment(overrides: Record<string, unknown> = {}) {
     cancellationReason: null,
     confirmedAt: null,
     cancelledAt: null,
+    completedAt: null,
+    medicalHistoryImageUrl: null,
+    medicalHistoryImagePublicId: null,
     createdAt: new Date("2026-11-09T10:00:00.000Z"),
+    updatedAt: new Date("2026-11-09T10:00:00.000Z"),
     doctor: { displayName: "Dr. Ada" },
     payments: [
       {

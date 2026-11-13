@@ -1,3 +1,5 @@
+import type { DoctorQualificationCard } from "@/types/doctors";
+
 export type DoctorProfileDto = {
   id: string;
   siteCode: "IN" | "COM";
@@ -10,10 +12,8 @@ export type DoctorProfileDto = {
   phone: string;
   email: string;
   location: string;
-  education: string;
-  degree: string;
-  workHistory: string;
-  workDays: string;
+  qualificationTitle: string;
+  qualificationCards: DoctorQualificationCard[];
   photoUrl: string;
   photoPublicId: string;
   active: boolean;
@@ -33,10 +33,8 @@ export type DoctorProfileFormValues = {
   phone: string;
   email: string;
   location: string;
-  education: string;
-  degree: string;
-  workHistory: string;
-  workDays: string;
+  qualificationTitle: string;
+  qualificationCards: DoctorQualificationCard[];
   photoUrl: string;
   photoPublicId: string;
   active: boolean;
@@ -55,10 +53,8 @@ export type DoctorProfilePayload = {
   phone: string;
   email: string;
   location: string;
-  education: string;
-  degree: string;
-  workHistory: string;
-  workDays: string;
+  qualificationTitle: string;
+  qualificationCards: DoctorQualificationCard[];
   photoUrl: string;
   photoPublicId: string;
   active: boolean;

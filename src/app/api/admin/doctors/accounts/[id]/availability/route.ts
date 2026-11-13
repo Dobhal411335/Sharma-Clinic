@@ -1,4 +1,4 @@
-import { ZodError, z } from "zod";
+import { ZodError } from "zod";
 
 import {
   getDoctorAvailability,
@@ -12,22 +12,9 @@ import {
   requireCmsAdmin,
   zodMessage,
 } from "@/features/cms/http";
-import { WEEKDAY_VALUES } from "@/types/doctors-availability";
+import { doctorAvailabilityBodySchema } from "@/lib/doctor-availability-schema";
 
 type RouteContext = { params: Promise<{ id: string }> };
-
-const windowSchema = z.object({
-  weekday: z.enum(WEEKDAY_VALUES),
-  startTimeLocal: z.string().trim(),
-  endTimeLocal: z.string().trim(),
-  slotDurationMinutes: z.coerce.number().int().min(5).max(240),
-});
-
-const bodySchema = z.object({
-  windows: z.array(windowSchema).min(1),
-  applyMode: z.enum(["WEEK", "MONTH"]),
-  applyWeekdays: z.array(z.enum(WEEKDAY_VALUES)).optional(),
-});
 
 export async function GET(_request: Request, context: RouteContext) {
   const authResult = await requireCmsAdmin();
@@ -62,7 +49,7 @@ export async function PUT(request: Request, context: RouteContext) {
     if (!account.doctorId) {
       return jsonMessage(404, "Doctor operational profile not found.");
     }
-    const body = bodySchema.parse(payload.body);
+    const body = doctorAvailabilityBodySchema.parse(payload.body);
     const data = await replaceDoctorAvailability(account.doctorId, body);
     return jsonData(data, "Doctor availability saved.");
   } catch (error) {

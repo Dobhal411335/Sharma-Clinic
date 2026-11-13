@@ -80,6 +80,9 @@ export async function createPublicAppointment(
 
   const feeSnapshotPaise = Math.max(0, doctor.consultationFeePaise);
   const reason = input.problem?.trim() || null;
+  const medicalHistoryImageUrl = input.medicalHistoryImageUrl?.trim() || null;
+  const medicalHistoryImagePublicId =
+    input.medicalHistoryImagePublicId?.trim() || null;
   // Free consultations skip Razorpay and go straight to admin review.
   const initialStatus = feeSnapshotPaise > 0 ? "PENDING_PAYMENT" : "PENDING";
 
@@ -119,6 +122,8 @@ export async function createPublicAppointment(
           feeSnapshotPaise,
           currency: "INR",
           reason,
+          medicalHistoryImageUrl,
+          medicalHistoryImagePublicId,
         },
       });
     });

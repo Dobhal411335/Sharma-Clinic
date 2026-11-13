@@ -1,5 +1,6 @@
 import { cache } from "react";
 
+import { normalizeDoctorQualification } from "@/schemas/doctor-qualification";
 import {
   doctorProfileSlug,
   type DoctorPageConfig,
@@ -78,6 +79,7 @@ async function loadDoctorProfiles(): Promise<DoctorProfile[]> {
         typeof (item as { staffDoctorId?: unknown }).staffDoctorId === "string"
           ? (item as { staffDoctorId: string }).staffDoctorId
           : null;
+      const qualification = normalizeDoctorQualification(item);
       return {
         ...item,
         specializations: Array.isArray(item.specializations)
@@ -86,10 +88,8 @@ async function loadDoctorProfiles(): Promise<DoctorProfile[]> {
         phone: item.phone ?? "",
         email: item.email ?? "",
         location: item.location ?? "",
-        education: item.education ?? "",
-        degree: item.degree ?? "",
-        workHistory: item.workHistory ?? "",
-        workDays: item.workDays ?? "",
+        qualificationTitle: qualification.qualificationTitle,
+        qualificationCards: qualification.qualificationCards,
         staffDoctorId,
         staffUserId:
           typeof (item as { staffUserId?: unknown }).staffUserId === "string"

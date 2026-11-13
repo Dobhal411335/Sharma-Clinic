@@ -1,4 +1,4 @@
-import { ZodError, z } from "zod";
+import { ZodError } from "zod";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
@@ -9,20 +9,7 @@ import {
 } from "@/features/doctors/doctor-availability.service";
 import { jsonData, jsonMessage, readJson, zodMessage } from "@/features/cms/http";
 import { isDoctor } from "@/lib/auth/permissions";
-import { WEEKDAY_VALUES } from "@/types/doctors-availability";
-
-const windowSchema = z.object({
-  weekday: z.enum(WEEKDAY_VALUES),
-  startTimeLocal: z.string().trim(),
-  endTimeLocal: z.string().trim(),
-  slotDurationMinutes: z.coerce.number().int().min(5).max(240),
-});
-
-const bodySchema = z.object({
-  windows: z.array(windowSchema).min(1),
-  applyMode: z.enum(["WEEK", "MONTH"]),
-  applyWeekdays: z.array(z.enum(WEEKDAY_VALUES)).optional(),
-});
+import { doctorAvailabilityBodySchema } from "@/lib/doctor-availability-schema";
 
 async function requireDoctorSession(): Promise<
   | { ok: true; userId: string; doctorId: string }
@@ -69,7 +56,7 @@ export async function PUT(request: Request) {
   if (!payload.ok) return payload.response;
 
   try {
-    const body = bodySchema.parse(payload.body);
+    const body = doctorAvailabilityBodySchema.parse(payload.body);
     const data = await replaceDoctorAvailability(authResult.doctorId, body);
     return jsonData(data, "Doctor availability saved.");
   } catch (error) {

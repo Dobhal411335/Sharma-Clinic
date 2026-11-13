@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { AdminAppShell } from "@/components/layout/admin-app-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -37,6 +43,7 @@ import type {
   BookingOrderSummary,
   BookingStatusUpdate,
 } from "@/types/admin/booking-order";
+import Image from "next/image";
 
 function clinicTodayIso(): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -65,6 +72,48 @@ function formatWhen(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+function formatPhoneDisplay(phone: string | null): string {
+  if (!phone) return "—";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+  if (digits.length === 12 && digits.startsWith("91")) {
+    return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+  }
+  return phone;
+}
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-3 text-sm sm:grid-cols-[10rem_minmax(0,1fr)]">
+      <dt className="text-[#626a73]">{label}</dt>
+      <dd className="min-w-0 break-words font-medium text-[#1f2937]">{value}</dd>
+    </div>
+  );
+}
+
+function DetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-[#e8ecf0] bg-[#fafbfc] p-4">
+      <h3 className="mb-3 text-xs font-semibold tracking-wide text-[#626a73] uppercase">
+        {title}
+      </h3>
+      <dl className="space-y-2.5">{children}</dl>
+    </section>
+  );
 }
 
 function statusBadgeClass(status: string): string {
@@ -96,7 +145,9 @@ const emptySummary: BookingOrderSummary = {
 };
 
 export function BookingOrderPage() {
-  const [date, setDate] = useState(clinicTodayIso);
+  // Empty date = all bookings. Defaulting to "today" hid future appointments
+  // (e.g. booked for tomorrow) and looked like missing data.
+  const [date, setDate] = useState("");
   const [status, setStatus] = useState("ALL");
   const [doctorId, setDoctorId] = useState("ALL");
   const [items, setItems] = useState<BookingOrderListItem[]>([]);
@@ -119,7 +170,7 @@ export function BookingOrderPage() {
     setLoadError(null);
     try {
       const data = await fetchAdminBookings({
-        date,
+        date: date || undefined,
         status,
         doctorId: doctorId === "ALL" ? undefined : doctorId,
       });
@@ -142,13 +193,20 @@ export function BookingOrderPage() {
 
   const cards = useMemo(
     () => [
-      { label: "Today’s bookings", value: summary.todayCount },
+      {
+        label: date
+          ? date === clinicTodayIso()
+            ? "Today’s bookings"
+            : "Bookings on date"
+          : "Total bookings",
+        value: summary.todayCount,
+      },
       { label: "Paid", value: summary.paidCount },
       { label: "Pending acceptance", value: summary.pendingAcceptanceCount },
       { label: "Declined", value: summary.declinedCount },
       { label: "Pending payment", value: summary.pendingPaymentCount },
     ],
-    [summary],
+    [summary, date],
   );
 
   const openView = async (id: string) => {
@@ -222,13 +280,34 @@ export function BookingOrderPage() {
         <div className="flex flex-wrap items-end gap-3 rounded-xl bg-white p-4 ring-1 ring-[#e4e7eb]">
           <div className="space-y-1.5">
             <Label htmlFor="booking-date">Date</Label>
-            <Input
-              id="booking-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-[160px]"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id="booking-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-[160px]"
+              />
+              {date ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDate("")}
+                >
+                  All dates
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDate(clinicTodayIso())}
+                >
+                  Today
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label>Status</Label>
@@ -361,8 +440,8 @@ export function BookingOrderPage() {
           if (!open) setViewItem(null);
         }}
       >
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+          <DialogHeader className="border-b border-[#e8ecf0] px-6 py-4 text-left">
             <DialogTitle>Booking details</DialogTitle>
             <DialogDescription>
               {viewItem
@@ -372,88 +451,201 @@ export function BookingOrderPage() {
           </DialogHeader>
 
           {viewItem ? (
-            <div className="space-y-5 text-sm">
-              <section className="space-y-1">
-                <h3 className="font-semibold text-[#1f2937]">Patient</h3>
-                <p>{viewItem.patientName}</p>
-                <p className="text-[#626a73]">{viewItem.patientEmail}</p>
-                {viewItem.patientPhone ? (
-                  <p className="text-[#626a73]">{viewItem.patientPhone}</p>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              <DetailSection title="Booking">
+                <DetailRow label="Reference" value={viewItem.bookingReference} />
+                <DetailRow
+                  label="Status"
+                  value={
+                    <Badge
+                      variant="link"
+                      className={`text-sm rounded border border-black px-2 py-1 ${statusBadgeClass(viewItem.appointmentStatus)}`}
+                    >
+                      {viewItem.appointmentStatus}
+                    </Badge>
+                  }
+                />
+                <DetailRow
+                  label="Created"
+                  value={formatWhen(viewItem.createdAt)}
+                />
+                <DetailRow
+                  label="Updated"
+                  value={formatWhen(viewItem.updatedAt)}
+                />
+                {viewItem.confirmedAt ? (
+                  <DetailRow
+                    label="Confirmed"
+                    value={formatWhen(viewItem.confirmedAt)}
+                  />
                 ) : null}
-              </section>
+                {viewItem.cancelledAt ? (
+                  <DetailRow
+                    label="Cancelled"
+                    value={formatWhen(viewItem.cancelledAt)}
+                  />
+                ) : null}
+                {viewItem.completedAt ? (
+                  <DetailRow
+                    label="Completed"
+                    value={formatWhen(viewItem.completedAt)}
+                  />
+                ) : null}
+                {viewItem.cancellationReason ? (
+                  <DetailRow
+                    label="Cancel reason"
+                    value={viewItem.cancellationReason}
+                  />
+                ) : null}
+              </DetailSection>
 
-              <section className="space-y-1">
-                <h3 className="font-semibold text-[#1f2937]">Doctor &amp; schedule</h3>
-                <p>{viewItem.doctorName}</p>
-                <p className="text-[#626a73]">
-                  {formatWhen(viewItem.startsAt)} – {formatWhen(viewItem.endsAt)}
-                </p>
-                {viewItem.reason ? (
-                  <p className="text-[#626a73]">Reason: {viewItem.reason}</p>
-                ) : null}
-              </section>
+              <DetailSection title="Patient">
+                <DetailRow label="Name" value={viewItem.patientName} />
+                <DetailRow label="Email" value={viewItem.patientEmail} />
+                <DetailRow
+                  label="Phone"
+                  value={formatPhoneDisplay(viewItem.patientPhone)}
+                />
+              </DetailSection>
 
-              <section className="space-y-1">
-                <h3 className="font-semibold text-[#1f2937]">Payment</h3>
-                <p>Fee: {formatInr(viewItem.feeSnapshotPaise)}</p>
-                <p>
-                  Status:{" "}
-                  <Badge
-                    variant="outline"
-                    className={statusBadgeClass(viewItem.paymentStatus)}
-                  >
-                    {viewItem.paymentStatus}
-                  </Badge>
-                </p>
-                {viewItem.payment?.providerPaymentId ? (
-                  <p className="text-xs text-[#626a73]">
-                    Razorpay payment: {viewItem.payment.providerPaymentId}
-                  </p>
-                ) : null}
-                {viewItem.payment?.paidAt ? (
-                  <p className="text-xs text-[#626a73]">
-                    Paid at: {formatWhen(viewItem.payment.paidAt)}
-                  </p>
-                ) : null}
-              </section>
+              <DetailSection title="Doctor & schedule">
+                <DetailRow label="Doctor" value={viewItem.doctorName} />
+                <DetailRow
+                  label="Starts"
+                  value={formatWhen(viewItem.startsAt)}
+                />
+                <DetailRow label="Ends" value={formatWhen(viewItem.endsAt)} />
+                <DetailRow
+                  label="Reason"
+                  value={viewItem.reason?.trim() || "—"}
+                />
+              </DetailSection>
 
-              <section className="space-y-3">
-                <h3 className="font-semibold text-[#1f2937]">Action</h3>
-                <div className="space-y-1.5">
-                  <Label>Appointment status</Label>
-                  <Select
-                    value={actionStatus}
-                    onValueChange={(value) =>
-                      setActionStatus(value as BookingStatusUpdate)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="ACCEPTED">Accepted</SelectItem>
-                      <SelectItem value="DECLINED">Declined</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {actionStatus === "DECLINED" ? (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="decline-reason">Decline reason</Label>
-                    <Textarea
-                      id="decline-reason"
-                      value={declineReason}
-                      onChange={(e) => setDeclineReason(e.target.value)}
-                      rows={3}
-                      placeholder="Optional note sent to the patient"
+              <DetailSection title="Medical history image">
+                {viewItem.medicalHistoryImageUrl ? (
+                  <div className="space-y-3">
+                    <a
+                      href={viewItem.medicalHistoryImageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block overflow-hidden rounded-lg border border-[#e4e7eb] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Image
+                        width={100}
+                        height={100}
+                        src={viewItem.medicalHistoryImageUrl}
+                        alt="Medical history"
+                        className="max-h-64 w-full object-contain"
+                        priority
+                      />
+                    </a>
+                    <DetailRow
+                      label="Open"
+                      value={
+                        <a
+                          href={viewItem.medicalHistoryImageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#168b91] underline-offset-2 hover:underline"
+                        >
+                          View full image
+                        </a>
+                      }
                     />
                   </div>
-                ) : null}
+                ) : (
+                  <p className="text-sm text-[#626a73]">
+                    No medical history image uploaded.
+                  </p>
+                )}
+              </DetailSection>
+
+              <DetailSection title="Payment">
+                <DetailRow
+                  label="Fee"
+                  value={formatInr(viewItem.feeSnapshotPaise)}
+                />
+                <DetailRow label="Currency" value={viewItem.currency} />
+                <DetailRow
+                  label="Status"
+                  value={
+                    <Badge
+                      variant="outline"
+                      className={statusBadgeClass(viewItem.paymentStatus)}
+                    >
+                      {viewItem.paymentStatus}
+                    </Badge>
+                  }
+                />
+                {viewItem.payment ? (
+                  <>
+                    <DetailRow
+                      label="Amount"
+                      value={formatInr(viewItem.payment.amountPaise)}
+                    />
+                    <DetailRow
+                      label="Order ID"
+                      value={viewItem.payment.providerOrderId || "—"}
+                    />
+                    <DetailRow
+                      label="Payment ID"
+                      value={viewItem.payment.providerPaymentId || "—"}
+                    />
+                    <DetailRow
+                      label="Paid at"
+                      value={
+                        viewItem.payment.paidAt
+                          ? formatWhen(viewItem.payment.paidAt)
+                          : "—"
+                      }
+                    />
+                  </>
+                ) : (
+                  <DetailRow label="Payment record" value="None" />
+                )}
+              </DetailSection>
+
+              <section className="rounded-xl border border-[#e8ecf0] bg-white p-4">
+                <h3 className="mb-3 text-xs font-semibold tracking-wide text-[#626a73] uppercase">
+                  Action
+                </h3>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>Appointment status</Label>
+                    <Select
+                      value={actionStatus}
+                      onValueChange={(value) =>
+                        setActionStatus(value as BookingStatusUpdate)
+                      }
+                    >
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PENDING">Pending</SelectItem>
+                        <SelectItem value="ACCEPTED">Accepted</SelectItem>
+                        <SelectItem value="DECLINED">Declined</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {actionStatus === "DECLINED" ? (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="decline-reason">Decline reason</Label>
+                      <Textarea
+                        id="decline-reason"
+                        value={declineReason}
+                        onChange={(e) => setDeclineReason(e.target.value)}
+                        rows={3}
+                        placeholder="Optional note sent to the patient"
+                      />
+                    </div>
+                  ) : null}
+                </div>
               </section>
             </div>
           ) : null}
 
-          <DialogFooter>
+          <DialogFooter className="border-t border-[#e8ecf0] mb-1 px-6 py-4 sm:justify-end">
             <Button
               type="button"
               variant="outline"

@@ -136,7 +136,7 @@ export function AppointmentDateTimePicker({
         <button
           type="button"
           className={cn(
-            "flex h-10 w-full items-center justify-between rounded-md border border-[#e4ddd0] bg-white px-3 text-left text-sm shadow-xs outline-none transition-colors",
+            "flex h-10 w-full items-center justify-between rounded-md border border-[#e4ddd0] bg-[#fbf8f2] px-3 text-left text-sm shadow-xs outline-none transition-colors",
             "hover:bg-[#fbf8f2] focus-visible:ring-2 focus-visible:ring-ring",
             open && "ring-2 ring-ring",
           )}
@@ -210,7 +210,7 @@ export function AppointmentDateTimePicker({
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col bg-white">
+          <div className="flex min-w-0 flex-1 flex-col bg-[#fbf8f2]">
             <div className="border-b border-[#e4ddd0] px-3 py-2">
               <p className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-[#6b7280] uppercase">
                 <Clock3 className="size-3.5 text-[#168b91]" aria-hidden />

@@ -13,7 +13,6 @@ type DoctorShowcaseCardProps = {
 };
 
 function doctorTitle(doctor: DoctorProfile): string {
-  if (doctor.degree.trim()) return doctor.degree.trim();
   return doctor.specializations[0] ?? "";
 }
 

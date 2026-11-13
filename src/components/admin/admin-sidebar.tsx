@@ -287,7 +287,7 @@ export function AdminSidebar({
         </ScrollArea>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
-        {email ? <p className="truncate px-2 text-xs text-white/70">{email}</p> : null}
+        {email ? <p className="truncate px-2 text-xs text-white">{email}</p> : null}
         {signOut}
       </SidebarFooter>
     </Sidebar>

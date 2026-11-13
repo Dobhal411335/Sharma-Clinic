@@ -128,10 +128,10 @@ export function DoctorProfileEditor({
       phone: phoneDigits(account.profile.phone || account.phone),
       email: account.email,
       location: account.profile.location,
-      education: account.profile.education,
-      degree: account.profile.degree,
-      workHistory: account.profile.workHistory,
-      workDays: account.profile.workDays,
+      qualificationTitle: account.profile.qualificationTitle || "Qualification",
+      qualificationCards: Array.isArray(account.profile.qualificationCards)
+        ? account.profile.qualificationCards
+        : [],
       photoUrl: account.profile.photoUrl,
       photoPublicId: account.profile.photoPublicId,
       active: account.profile.active,

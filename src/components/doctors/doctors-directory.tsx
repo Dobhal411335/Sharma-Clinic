@@ -125,6 +125,14 @@ function facetsFromDoctors(doctors: DoctorProfile[]): DoctorProfileFacets {
 }
 
 function profileSearchText(doctor: DoctorProfile): string {
+  const qualificationBits = [
+    doctor.qualificationTitle,
+    ...(doctor.qualificationCards ?? []).flatMap((card) => [
+      card.heading,
+      ...card.descriptions.map((html) => html.replace(/<[^>]*>/g, " ")),
+    ]),
+  ];
+
   return [
     doctor.name,
     formatDoctorDisplayName(doctor.name),
@@ -132,11 +140,8 @@ function profileSearchText(doctor: DoctorProfile): string {
     doctor.location,
     doctor.city,
     doctor.state,
-    doctor.education,
-    doctor.degree,
-    doctor.workHistory,
-    doctor.workDays,
-    doctor.about,
+    ...qualificationBits,
+    doctor.about.replace(/<[^>]*>/g, " "),
     doctor.experienceYears > 0 ? `${doctor.experienceYears}` : "",
   ]
     .join(" ")

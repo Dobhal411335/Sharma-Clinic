@@ -1,21 +1,9 @@
 import "server-only";
 
-import type { Weekday } from "@prisma/client";
-
+import { listWindowsForDate } from "@/features/doctors/doctor-availability.service";
 import { prisma } from "@/lib/db/prisma";
-import type { WeekdayValue } from "@/types/doctors-availability";
 
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-const WEEKDAY_FROM_UTC_DAY: WeekdayValue[] = [
-  "SUNDAY",
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-];
 
 const ACTIVE_BOOKING_STATUSES = [
   "PENDING_PAYMENT",
@@ -71,21 +59,10 @@ export async function listBookableSlots(input: {
   if (!doctor) throw new Error("Doctor not found.");
 
   const dayStart = clinicLocalToUtc(date, "00:00");
-  const weekdayProbe = clinicLocalToUtc(date, "12:00");
-  const weekday = WEEKDAY_FROM_UTC_DAY[weekdayProbe.getUTCDay()]!;
-
   const now = new Date();
-  const windows = await prisma.weeklyAvailability.findMany({
-    where: {
-      doctorId: doctor.id,
-      weekday: weekday as Weekday,
-      isActive: true,
-      AND: [
-        { OR: [{ effectiveFrom: null }, { effectiveFrom: { lte: now } }] },
-        { OR: [{ effectiveUntil: null }, { effectiveUntil: { gte: now } }] },
-      ],
-    },
-    orderBy: { startTimeLocal: "asc" },
+  const windows = await listWindowsForDate({
+    doctorId: doctor.id,
+    date,
   });
 
   if (windows.length === 0) return [];

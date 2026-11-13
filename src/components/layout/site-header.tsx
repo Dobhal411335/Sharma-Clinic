@@ -2,7 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, Mail, MapPin, MessageCircle, Phone, type LucideIcon } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  LogIn,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  type LucideIcon,
+} from "lucide-react";
 
 import { MobileNav } from "@/components/layout/mobile-nav";
 import {
@@ -21,6 +30,7 @@ import {
 } from "@/data/site";
 import { useCompanyBasicInfo } from "@/providers/company-basic-info-provider";
 import { useNavbarSections } from "@/providers/navbar-sections-provider";
+
 const navTriggerClassName =
   "relative gap-2 rounded-md px-3 py-2 text-xs font-semibold tracking-wide uppercase text-white/80 transition-[color,background-color,transform] duration-200 ease-out [&>svg]:ml-0 hover:!bg-transparent hover:text-white focus:!bg-transparent active:scale-[0.98] after:pointer-events-none after:absolute after:bottom-1 after:left-3 after:right-8 after:h-px after:origin-left after:scale-x-0 after:bg-[#f28b5b] after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100 focus-visible:after:scale-x-100 data-open:!bg-transparent data-open:text-white data-open:after:scale-x-100 data-open:hover:!bg-transparent data-popup-open:!bg-transparent data-popup-open:text-white data-popup-open:after:scale-x-100 data-popup-open:hover:!bg-transparent";
 
@@ -82,7 +92,7 @@ export function SiteHeader() {
   return (
     <>
       {showUtilityBar && (
-        <div className="border-b border-white/50 bg-[#14272E]">
+        <div className="border-b border-white/50 bg-primary">
           <div className="md:px-10 px-5 flex w-full items-center justify-between gap-4 py-2 text-xs text-white">
             {address ? (
               mapHref ? (
@@ -131,7 +141,7 @@ export function SiteHeader() {
         </div>
       )}
 
-      <header className="sticky top-0 z-40 bg-[#14272E] backdrop-blur supports-backdrop-filter:bg-[#14272E] border-b border-white/50">
+      <header className="sticky top-0 z-40 bg-primary backdrop-blur supports-backdrop-filter:bg-primary border-b border-white/50">
         <div className="mx-10 flex items-center gap-3 py-3 lg:py-4">
           <MobileNav />
 
@@ -278,9 +288,17 @@ export function SiteHeader() {
 
           <Link
             href="/doctors"
-            className="hidden shrink-0 rounded-full bg-white px-5 py-3 text-xs font-semibold tracking-wide text-[#132128] transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:inline-flex"
+            className="group hidden cursor-pointer items-center gap-2 shrink-0 rounded-full bg-white px-5 py-3 text-xs font-semibold tracking-wide text-[#132128] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-white/90 hover:shadow-md active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:inline-flex"
           >
+            <CalendarDays className="size-3.5 shrink-0 transition-transform duration-200 ease-out group-hover:scale-110" />
             Appointment your doctor
+          </Link>
+          <Link
+            href="/login"
+            className="group hidden cursor-pointer items-center gap-2 shrink-0 rounded-full bg-white px-5 py-3 text-xs font-semibold tracking-wide text-[#132128] transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-white/90 hover:shadow-md active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:inline-flex"
+          >
+            <LogIn className="size-3.5 shrink-0 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
+            Login
           </Link>
 
         </div>

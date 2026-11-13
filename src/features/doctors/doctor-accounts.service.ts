@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth/password";
 import { prisma } from "@/lib/db/prisma";
 import { sendDoctorLoginCredentialsEmail } from "@/server/integrations/brevo/send";
+import { normalizeDoctorQualification } from "@/schemas/doctor-qualification";
 import { doctorProfileSlug, formatDoctorDisplayName } from "@/types/doctors";
 import type {
   ApproveDoctorAccountInput,
@@ -51,10 +52,8 @@ function emptyProfile(name: string, email: string, phone: string) {
     phone,
     email,
     location: "",
-    education: "",
-    degree: "",
-    workHistory: "",
-    workDays: "",
+    qualificationTitle: "Qualification",
+    qualificationCards: [],
     photoUrl: "",
     photoPublicId: "",
     active: false,
@@ -217,6 +216,9 @@ export async function getDoctorAccount(userId: string): Promise<DoctorAccountDet
   const cms = await findCmsProfileByStaffUserId(user.id);
   const list = toListItem(user, cms?.id ?? null);
   const profileSource = cms ?? emptyProfile(user.name || user.email, user.email, user.phone ?? "");
+  const qualification = normalizeDoctorQualification(
+    profileSource as Record<string, unknown>,
+  );
 
   const canShowPendingPassword =
     user.approvalStatus === "PENDING_APPROVAL" || !user.credentialsEmailSentAt;
@@ -238,10 +240,8 @@ export async function getDoctorAccount(userId: string): Promise<DoctorAccountDet
       phone: String(profileSource.phone ?? user.phone ?? ""),
       email: String(profileSource.email ?? user.email),
       location: String(profileSource.location ?? ""),
-      education: String(profileSource.education ?? ""),
-      degree: String(profileSource.degree ?? ""),
-      workHistory: String(profileSource.workHistory ?? ""),
-      workDays: String(profileSource.workDays ?? ""),
+      qualificationTitle: qualification.qualificationTitle,
+      qualificationCards: qualification.qualificationCards,
       photoUrl: String(profileSource.photoUrl ?? ""),
       photoPublicId: String(profileSource.photoPublicId ?? ""),
       active: Boolean(profileSource.active),

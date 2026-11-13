@@ -61,6 +61,8 @@ async function postHandler(request: Request): Promise<Response> {
       ...parsed.data,
       medicalHistoryImageUrl:
         parsed.data.medicalHistoryImageUrl?.trim() || undefined,
+      medicalHistoryImagePublicId:
+        parsed.data.medicalHistoryImagePublicId?.trim() || undefined,
     });
     if (!data.requiresPayment) {
       void notifyFreeBookingReceived(data.appointmentId).catch(() => undefined);

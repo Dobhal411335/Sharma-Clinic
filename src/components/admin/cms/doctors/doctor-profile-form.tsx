@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImageIcon, Plus, Stethoscope, UploadCloud, X } from "lucide-react";
+import { ImageIcon, Plus, Stethoscope, Trash2, UploadCloud, X } from "lucide-react";
 
+import { RichTextEditor } from "@/components/admin/cms/editor/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +29,11 @@ import {
   DOCTOR_PREFIX_OPTIONS,
   type DoctorProfileFormErrors,
 } from "@/schemas/doctor-profile-schema";
+import { createEmptyQualificationCard } from "@/schemas/doctor-qualification";
 import { uploadDoctorPhoto } from "@/services/api/doctor-profile";
 import { ApiError } from "@/services/api/errors";
 import type { DoctorProfileFormValues } from "@/types/admin/doctor-profile";
+import type { DoctorQualificationCard } from "@/types/doctors";
 
 type DoctorProfileFormProps = {
   values: DoctorProfileFormValues;
@@ -425,17 +428,18 @@ export function DoctorProfileForm({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="doctor-about">
+                <Label>
                   About <span className="text-destructive">*</span>
                 </Label>
-                <Textarea
-                  id="doctor-about"
-                  rows={5}
+                <RichTextEditor
                   value={values.about}
-                  placeholder="Short description shown on doctor cards"
-                  onChange={(event) =>
-                    onChange({ ...values, about: event.target.value })
-                  }
+                  onChange={(about) => onChange({ ...values, about })}
+                  placeholder="Doctor bio shown on the profile page"
+                  minHeightClassName="min-h-[160px]"
+                  onUploadImage={async (file) => {
+                    const uploaded = await uploadDoctorPhoto(file, editingId);
+                    return uploaded.url;
+                  }}
                 />
                 {errors.about ? (
                   <p className="text-sm text-destructive">{errors.about}</p>
@@ -493,61 +497,196 @@ export function DoctorProfileForm({
           </div>
 
           <div className="space-y-4 rounded-xl border border-border p-4">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Qualification</h3>
+            <div className="space-y-2">
+              <Label htmlFor="doctor-qualification-title">Section title</Label>
+              <Input
+                id="doctor-qualification-title"
+                value={values.qualificationTitle}
+                placeholder="Qualification"
+                onChange={(event) =>
+                  onChange({
+                    ...values,
+                    qualificationTitle: event.target.value,
+                  })
+                }
+              />
               <p className="text-xs text-muted-foreground">
-                Education, degree, work history, and working days shown on the doctor profile.
+                Shown as the heading on the doctor profile. Add cards below for education,
+                degrees, or any custom sections.
               </p>
+              {errors.qualificationTitle ? (
+                <p className="text-sm text-destructive">
+                  {errors.qualificationTitle}
+                </p>
+              ) : null}
             </div>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="doctor-education">Education</Label>
-                <Textarea
-                  id="doctor-education"
-                  rows={4}
-                  value={values.education}
-                  placeholder="MBBS, internship, fellowships"
-                  onChange={(event) =>
-                    onChange({ ...values, education: event.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="doctor-degree">Degree</Label>
-                <Textarea
-                  id="doctor-degree"
-                  rows={4}
-                  value={values.degree}
-                  placeholder="MD Dermatology"
-                  onChange={(event) =>
-                    onChange({ ...values, degree: event.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="doctor-work-history">Work history</Label>
-                <Textarea
-                  id="doctor-work-history"
-                  rows={4}
-                  value={values.workHistory}
-                  placeholder="Hospitals, clinics, and roles"
-                  onChange={(event) =>
-                    onChange({ ...values, workHistory: event.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="doctor-work-days">Work days</Label>
-                <Textarea
-                  id="doctor-work-days"
-                  rows={4}
-                  value={values.workDays}
-                  placeholder="Mon–Sat, 10:00 AM – 6:00 PM"
-                  onChange={(event) =>
-                    onChange({ ...values, workDays: event.target.value })
-                  }
-                />
-              </div>
+
+            <div className="space-y-4">
+              {values.qualificationCards.map((card, cardIndex) => (
+                <div
+                  key={card.id}
+                  className="space-y-4 rounded-xl border border-border bg-muted/20 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Label htmlFor={`doctor-qualification-heading-${card.id}`}>
+                        Card heading
+                      </Label>
+                      <Input
+                        id={`doctor-qualification-heading-${card.id}`}
+                        value={card.heading}
+                        placeholder="Education"
+                        onChange={(event) => {
+                          const nextCards = values.qualificationCards.map(
+                            (current, index) =>
+                              index === cardIndex
+                                ? { ...current, heading: event.target.value }
+                                : current,
+                          );
+                          onChange({ ...values, qualificationCards: nextCards });
+                        }}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="mt-7 shrink-0 text-destructive hover:text-destructive"
+                      aria-label="Remove card"
+                      onClick={() =>
+                        onChange({
+                          ...values,
+                          qualificationCards: values.qualificationCards.filter(
+                            (_, index) => index !== cardIndex,
+                          ),
+                        })
+                      }
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Descriptions</Label>
+                    {card.descriptions.map((description, descriptionIndex) => (
+                      <div
+                        key={`${card.id}-desc-${descriptionIndex}`}
+                        className="space-y-2 rounded-lg border border-border bg-background p-3"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Description {descriptionIndex + 1}
+                          </p>
+                          {card.descriptions.length > 1 ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-xs"
+                              aria-label={`Remove description ${descriptionIndex + 1}`}
+                              onClick={() => {
+                                const nextCards = values.qualificationCards.map(
+                                  (current, index): DoctorQualificationCard =>
+                                    index === cardIndex
+                                      ? {
+                                          ...current,
+                                          descriptions: current.descriptions.filter(
+                                            (_, descIndex) =>
+                                              descIndex !== descriptionIndex,
+                                          ),
+                                        }
+                                      : current,
+                                );
+                                onChange({
+                                  ...values,
+                                  qualificationCards: nextCards,
+                                });
+                              }}
+                            >
+                              <X className="size-3.5" />
+                            </Button>
+                          ) : null}
+                        </div>
+                        <RichTextEditor
+                          value={description}
+                          onChange={(html) => {
+                            const nextCards = values.qualificationCards.map(
+                              (current, index): DoctorQualificationCard =>
+                                index === cardIndex
+                                  ? {
+                                      ...current,
+                                      descriptions: current.descriptions.map(
+                                        (entry, descIndex) =>
+                                          descIndex === descriptionIndex
+                                            ? html
+                                            : entry,
+                                      ),
+                                    }
+                                  : current,
+                            );
+                            onChange({
+                              ...values,
+                              qualificationCards: nextCards,
+                            });
+                          }}
+                          placeholder="Details for this card"
+                          minHeightClassName="min-h-[120px]"
+                          onUploadImage={async (file) => {
+                            const uploaded = await uploadDoctorPhoto(
+                              file,
+                              editingId,
+                            );
+                            return uploaded.url;
+                          }}
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => {
+                        const nextCards = values.qualificationCards.map(
+                          (current, index): DoctorQualificationCard =>
+                            index === cardIndex
+                              ? {
+                                  ...current,
+                                  descriptions: [...current.descriptions, ""],
+                                }
+                              : current,
+                        );
+                        onChange({ ...values, qualificationCards: nextCards });
+                      }}
+                    >
+                      <Plus className="size-3.5" />
+                      Add description
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() =>
+                  onChange({
+                    ...values,
+                    qualificationCards: [
+                      ...values.qualificationCards,
+                      createEmptyQualificationCard(),
+                    ],
+                  })
+                }
+              >
+                <Plus className="size-4" />
+                Add card
+              </Button>
+              {errors.qualificationCards ? (
+                <p className="text-sm text-destructive">
+                  {errors.qualificationCards}
+                </p>
+              ) : null}
             </div>
           </div>
 

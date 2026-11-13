@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -23,6 +30,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   createAppointmentPaymentOrder,
   createDoctorAppointment,
+  fetchDoctorSlots,
   uploadDoctorMedicalHistoryImage,
   verifyAppointmentPayment,
 } from "@/features/doctors/create-doctor-appointment";
@@ -34,9 +42,13 @@ import {
   formatDoctorDisplayName,
   type DoctorProfile,
 } from "@/types/doctors";
+import Image from "next/image";
 
 type BookAppointmentWizardProps = {
   doctor: DoctorProfile;
+  /** Prefill from doctor schedule deep-link (`?date=&start=`). */
+  initialDate?: string;
+  initialStart?: string;
 };
 
 type FormErrors = Partial<
@@ -69,9 +81,9 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 const PHONE_COUNTRY_CODE = "+91";
 
 const STEPS = [
-  { id: 1 as const, label: "Details" },
-  { id: 2 as const, label: "Payment" },
-  { id: 3 as const, label: "Confirmed" },
+  { id: 1 as const, label: <p className="text-sm font-medium text-[#168b91]">Patient details</p> as React.ReactNode },
+  { id: 2 as const, label: <p className="text-sm font-medium text-[#168b91]">Payment</p> as React.ReactNode },
+  { id: 3 as const, label: <p className="text-sm font-medium text-[#168b91]">Confirmed</p> as React.ReactNode },
 ];
 
 declare global {
@@ -91,15 +103,28 @@ function formatInr(paise: number): string {
   }).format(paise / 100);
 }
 
-function formatWhen(iso: string): string {
+function formatWhen(startsAt: string, endsAt?: string): string {
   try {
-    return new Intl.DateTimeFormat("en-IN", {
-      dateStyle: "medium",
-      timeStyle: "short",
+    const start = new Date(startsAt);
+    const dateLabel = new Intl.DateTimeFormat("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
       timeZone: "Asia/Kolkata",
-    }).format(new Date(iso));
+    }).format(start);
+    const timeFmt = new Intl.DateTimeFormat("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
+    const startLabel = timeFmt.format(start);
+    if (!endsAt) return `${dateLabel} · ${startLabel}`;
+    const endLabel = timeFmt.format(new Date(endsAt));
+    return `${dateLabel} · ${startLabel} – ${endLabel}`;
   } catch {
-    return iso;
+    return startsAt;
   }
 }
 
@@ -128,20 +153,20 @@ function BookingTimeline({ current }: { current: Step }) {
 
   return (
     <ol
-      className="relative mx-auto flex w-full max-w-lg items-start justify-between px-2"
+      className="relative flex w-full items-start justify-between px-4 sm:px-8"
       aria-label="Booking steps"
     >
       <span
         aria-hidden
-        className="pointer-events-none absolute top-5 right-10 left-10 z-0 h-[3px] -translate-y-1/2 rounded-full"
+        className="pointer-events-none absolute top-5 right-14 left-14 z-0 h-[3px] -translate-y-1/2 rounded-full sm:right-16 sm:left-16"
         style={{ backgroundColor: "#d8d0c2" }}
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute top-5 left-10 z-0 h-[5px] -translate-y-1/2 rounded-full transition-all duration-300"
+        className="pointer-events-none absolute top-5 left-14 z-0 h-[5px] -translate-y-1/2 rounded-full transition-all duration-300 sm:left-16"
         style={{
           backgroundColor: "#16a34a",
-          width: `calc((100% - 5rem) * ${progressPercent / 100})`,
+          width: `calc((100% - 7rem) * ${progressPercent / 100})`,
         }}
       />
       {STEPS.map((step) => {
@@ -151,7 +176,7 @@ function BookingTimeline({ current }: { current: Step }) {
         return (
           <li
             key={step.id}
-            className="relative z-10 flex w-20 flex-col items-center gap-1.5"
+            className="relative z-10 flex w-20 flex-col items-center gap-1.5 sm:w-24"
           >
             <span
               className={cn(
@@ -186,40 +211,101 @@ function BookingTimeline({ current }: { current: Step }) {
   );
 }
 
-// function DoctorPanel({
-//   doctor,
-//   displayName,
-//   feePaise,
-// }: {
-//   doctor: DoctorProfile;
-//   displayName: string;
-//   feePaise: number;
-// }) {
-//   return (
-//     <aside className="relative hidden min-h-[28rem] w-[42%] shrink-0 self-stretch overflow-hidden md:block">
-//       {doctor.photoUrl ? (
-//         // eslint-disable-next-line @next/next/no-img-element -- CMS Cloudinary URL
-//         <img
-//           src={doctor.photoUrl}
-//           alt={displayName}
-//           className="absolute inset-0 h-full w-full object-cover"
-//         />
-//       ) : (
-//         <div className="absolute inset-0 bg-gradient-to-br from-[#168b91]/35 via-[#d9ecee] to-[#f8f5ee]" />
-//       )}
-//       <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
-//       <div className="absolute inset-x-0 bottom-0 space-y-1 p-6 text-white">
-//         <p className="text-lg font-semibold">{displayName}</p>
-//         <p className="text-sm text-white/85">
-//           {doctor.specializations.join(", ")}
-//         </p>
-//         <p className="pt-1 text-sm font-semibold">Fee: {formatInr(feePaise)}</p>
-//       </div>
-//     </aside>
-//   );
-// }
+function DoctorPanel({
+  doctor,
+  displayName,
+  feePaise,
+}: {
+  doctor: DoctorProfile;
+  displayName: string;
+  feePaise: number;
+}) {
+  return (
+    <aside className="relative hidden w-[42%] shrink-0 self-start overflow-hidden rounded-l-md md:sticky md:top-6 md:block md:h-[calc(100vh-7.5rem)] md:min-h-[28rem]">
+      {doctor.photoUrl ? (
+        <Image
+          width={100}
+          height={100}
+          src={doctor.photoUrl}
+          alt={displayName}
+          className="absolute inset-0 h-full w-full object-cover"
+          priority
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-[#168b91]/15 via-[#d9ecee] to-[#f8f5ee]" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 space-y-1 p-6 text-white">
+        <p className="text-lg font-semibold">{displayName}</p>
+        <p className="text-sm text-white/85">
+          {doctor.specializations.join(", ")}
+        </p>
+        <p className="pt-1 text-sm font-semibold">Fee: {formatInr(feePaise)}</p>
+      </div>
+    </aside>
+  );
+}
 
-export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
+function clinicLocalStartHmm(iso: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Kolkata",
+  }).formatToParts(new Date(iso));
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "00";
+  const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+}
+
+function normalizeHmm(value: string): string {
+  const match = /^(\d{1,2}):([0-5]\d)$/.exec(value.trim());
+  if (!match) return value.trim().slice(0, 5);
+  return `${match[1]!.padStart(2, "0")}:${match[2]}`;
+}
+
+function BookingSuccessPercent() {
+  const [percent, setPercent] = useState(0);
+  const [done, setDone] = useState(false);
+
+  const finish = useEffectEvent(() => {
+    setDone(true);
+  });
+
+  useEffect(() => {
+    const durationMs = 1050;
+    const started = performance.now();
+    let frame = 0;
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - started) / durationMs);
+      setPercent(Math.round(progress * 100));
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        finish();
+      }
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [finish]);
+
+  if (done) return null;
+
+  return (
+    <span className="booking-success-percent absolute z-[5] text-sm font-bold tabular-nums text-[#15803d]">
+      {percent}%
+    </span>
+  );
+}
+
+export function BookAppointmentWizard({
+  doctor,
+  initialDate,
+  initialStart,
+}: BookAppointmentWizardProps) {
+  const searchParams = useSearchParams();
   const staffDoctorId = doctor.staffDoctorId?.trim() || "";
   const feePaise = doctor.consultationFeePaise ?? 0;
   const displayName = useMemo(
@@ -228,12 +314,30 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
   );
   const doctorHref = `/doctors/${doctorProfileSlug(doctor.name)}`;
 
+  const queryDate = searchParams.get("date")?.trim() || "";
+  const queryStart = searchParams.get("start")?.trim() || "";
+  const prefillDate =
+    initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate)
+      ? initialDate
+      : /^\d{4}-\d{2}-\d{2}$/.test(queryDate)
+        ? queryDate
+        : "";
+  const prefillStart =
+    initialStart && /^([01]\d|2[0-3]):([0-5]\d)$/.test(normalizeHmm(initialStart))
+      ? normalizeHmm(initialStart)
+      : /^([01]\d|2[0-3]):([0-5]\d)$/.test(normalizeHmm(queryStart))
+        ? normalizeHmm(queryStart)
+        : "";
+
   const [step, setStep] = useState<Step>(1);
   const [patientName, setPatientName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [slot, setSlot] = useState<{ startsAt: string; endsAt: string } | null>(
     null,
+  );
+  const [slotPrefillLoading, setSlotPrefillLoading] = useState(
+    Boolean(prefillDate && prefillStart && staffDoctorId),
   );
   const [problem, setProblem] = useState("");
   const [medicalHistoryPreview, setMedicalHistoryPreview] = useState<
@@ -249,6 +353,47 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [booking, setBooking] = useState<BookingResult | null>(null);
+
+  useEffect(() => {
+    if (!staffDoctorId || !prefillDate || !prefillStart) {
+      setSlotPrefillLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setSlotPrefillLoading(true);
+      try {
+        const slots = await fetchDoctorSlots(staffDoctorId, prefillDate);
+        if (cancelled) return;
+        if (slots.length === 0) {
+          setSlot(null);
+          showError(
+            "That schedule slot is no longer available. Please choose another date and time.",
+          );
+          return;
+        }
+        const exact = slots.find(
+          (item) => clinicLocalStartHmm(item.startsAt) === prefillStart,
+        );
+        const inWindow =
+          exact ??
+          slots.find((item) => clinicLocalStartHmm(item.startsAt) >= prefillStart);
+        setSlot(inWindow ?? slots[0] ?? null);
+      } catch {
+        if (!cancelled) {
+          setSlot(null);
+          showError("Could not load the selected schedule time.");
+        }
+      } finally {
+        if (!cancelled) setSlotPrefillLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [staffDoctorId, prefillDate, prefillStart]);
 
   const clearMedicalHistory = () => {
     setMedicalHistoryPreview(null);
@@ -435,27 +580,25 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-xl border border-gray-300 bg-white/80 px-4 py-5 sm:px-6">
+    <div className="mx-auto w-full max-w-5xl space-y-5">
+      <div className="w-full rounded-xl border border-gray-300 bg-white/80 px-4 py-5 sm:px-6">
         <BookingTimeline current={step} />
       </div>
 
-      <div className="overflow-hidden rounded-md border border-[#e8e1d4] bg-white shadow-sm">
+      <div className="rounded-md border border-[#e8e1d4] shadow-sm">
         {step === 1 ? (
-          <div className="flex min-h-[28rem] items-stretch md:h-[min(78vh,720px)]">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[#fbf8f2]">
-              <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="flex items-start">
+            <DoctorPanel
+              doctor={doctor}
+              displayName={displayName}
+              feePaise={feePaise}
+            />
+            <div className="min-w-0 flex-1 rounded-md bg-[#fbf8f2] md:rounded-l-none md:rounded-r-md">
+              <div className="p-4 sm:p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div className="mb-4">
-                  <p className="text-sm font-medium text-[#168b91]">
-                    Step 1 · Patient details
-                  </p>
                   <h2 className="mt-1 text-xl font-bold tracking-tight text-[#1a2330] sm:text-2xl">
                     Book with {displayName}
                   </h2>
-                  <p className="mt-1 text-sm text-[#6b7280]">
-                    Consultation fee {formatInr(feePaise)}. Name, email, phone,
-                    and date &amp; time are required.
-                  </p>
                 </div>
 
                 <form onSubmit={goToReview} className="space-y-3 pb-2">
@@ -498,7 +641,7 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
                       <Label htmlFor="book-phone">
                         Phone <span className="text-destructive">*</span>
                       </Label>
-                      <div className="flex overflow-hidden rounded-md border border-[#e4ddd0] bg-white focus-within:ring-2 focus-within:ring-ring">
+                      <div className="flex overflow-hidden rounded-md border border-[#e4ddd0] bg-[#fbf8f2] focus-within:ring-2 focus-within:ring-ring">
                         <span className="flex select-none items-center border-r border-[#e4ddd0] bg-[#f3efe6] px-3 text-sm font-semibold text-[#1a2330]">
                           {PHONE_COUNTRY_CODE}
                         </span>
@@ -518,11 +661,7 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
                       </div>
                       {errors.phone ? (
                         <p className="text-sm text-destructive">{errors.phone}</p>
-                      ) : (
-                        <p className="text-xs text-[#8a8376]">
-                          Enter 10-digit mobile number
-                        </p>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
@@ -530,11 +669,23 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
                     <Label>
                       Date &amp; time <span className="text-destructive">*</span>
                     </Label>
-                    <AppointmentDateTimePicker
-                      doctorId={staffDoctorId}
-                      value={slot}
-                      onChange={setSlot}
-                    />
+                    {slotPrefillLoading ? (
+                      <div className="flex h-10 items-center gap-2 rounded-md border border-[#e4ddd0] bg-[#fbf8f2] px-3 text-sm text-muted-foreground">
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                        Loading selected schedule…
+                      </div>
+                    ) : (
+                      <AppointmentDateTimePicker
+                        doctorId={staffDoctorId}
+                        value={slot}
+                        onChange={setSlot}
+                      />
+                    )}
+                    {slot && prefillDate && prefillStart ? (
+                      <p className="text-xs text-muted-foreground">
+                        Prefill from doctor schedule. You can change it if needed.
+                      </p>
+                    ) : null}
                     {errors.scheduledAt ? (
                       <p className="text-sm text-destructive">
                         {errors.scheduledAt}
@@ -631,8 +782,13 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
         ) : null}
 
         {step === 2 ? (
-          <div className="flex min-h-[70vh] items-stretch md:min-h-[min(100vh,720px)]">
-            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[#fbf8f2] p-5 sm:p-8">
+          <div className="flex items-start">
+            <DoctorPanel
+              doctor={doctor}
+              displayName={displayName}
+              feePaise={feePaise}
+            />
+            <div className="min-w-0 flex-1 rounded-md bg-[#fbf8f2] p-5 sm:p-8 md:rounded-l-none md:rounded-r-md [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <div className="mb-6">
                 <p className="text-sm font-medium text-[#168b91]">
                   Step 2 · Review &amp; pay
@@ -676,7 +832,7 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
                 <div className="flex justify-between gap-4">
                   <dt className="text-[#6b7280]">When</dt>
                   <dd className="text-right font-medium text-[#1a2330]">
-                    {slot ? formatWhen(slot.startsAt) : "—"}
+                    {slot ? formatWhen(slot.startsAt, slot.endsAt) : "—"}
                   </dd>
                 </div>
                 {problem.trim() ? (
@@ -736,32 +892,42 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
         {step === 3 && booking ? (
           <div className="bg-[#fbf8f2] px-5 py-10 sm:px-10 sm:py-14">
             <div className="mx-auto max-w-xl text-center">
-              <div className="relative mx-auto mb-6 flex size-24 items-center justify-center">
+              <div
+                className="relative mx-auto mb-6 flex size-28 items-center justify-center"
+                aria-hidden
+              >
+                <svg
+                  className="absolute inset-0 size-full -rotate-90"
+                  viewBox="0 0 100 100"
+                  role="presentation"
+                >
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="rgba(22, 163, 74, 0.15)"
+                    strokeWidth="8"
+                  />
+                  <circle
+                    className="booking-success-progress-ring"
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#16a34a"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+                <BookingSuccessPercent />
+
                 <span
-                  className="absolute left-1/2 top-1/2 size-20 -translate-x-1/2 -translate-y-1/2 rounded-full w-30 h-30"
-                  style={{
-                    backgroundColor: "rgba(22, 163, 74, 0.25)",
-                    animation:
-                      "vendor-thank-you-heartbeat 1.6s ease-in-out infinite",
-                  }}
-                  aria-hidden
-                />
-                <span
-                  className="absolute left-1/2 top-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full w-20 h-20"
-                  style={{
-                    backgroundColor: "rgba(22, 163, 74, 0.35)",
-                    animation:
-                      "vendor-thank-you-heartbeat 1.6s ease-in-out infinite 0.15s",
-                  }}
-                  aria-hidden
-                />
-                <span
-                  className="relative z-10 flex size-16 items-center justify-center rounded-full text-white"
+                  className="booking-success-check absolute z-10 flex size-16 items-center justify-center rounded-full text-white"
                   style={{
                     backgroundColor: "#16a34a",
                     boxShadow: "0 10px 24px rgba(22, 163, 74, 0.35)",
-                    animation:
-                      "vendor-thank-you-heartbeat 1.6s ease-in-out infinite",
                   }}
                 >
                   <CheckCircle2 className="size-9 text-white" aria-hidden />
@@ -809,7 +975,10 @@ export function BookAppointmentWizard({ doctor }: BookAppointmentWizardProps) {
                     <div>
                       <p className="text-xs text-[#6b7280]">When</p>
                       <p className="font-semibold text-[#1a2330]">
-                        {formatWhen(booking.startsAt)}
+                        {formatWhen(
+                          slot?.startsAt ?? booking.startsAt,
+                          slot?.endsAt ?? booking.endsAt,
+                        )}
                       </p>
                     </div>
                   </li>
