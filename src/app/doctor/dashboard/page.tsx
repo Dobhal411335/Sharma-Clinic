@@ -1,42 +1,36 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
+import { DoctorDashboard } from "@/components/doctor/doctor-dashboard";
+import { resolveDoctorIdForUser } from "@/features/doctors/doctor-availability.service";
+import { getDoctorDashboardSummary } from "@/features/reports/doctor-dashboard-summary";
+import { parseDashboardRange } from "@/features/reports/dashboard-range";
 
-export default async function DoctorDashboardPage() {
+export const metadata: Metadata = {
+  title: "Dashboard",
+};
+
+export default async function DoctorDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
   const session = await auth();
+  const doctorId =
+    session?.user?.doctorId ??
+    (session?.user?.id ? await resolveDoctorIdForUser(session.user.id) : null);
 
-  return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-semibold text-[#102a43]">Doctor dashboard</h1>
-      <p className="mt-2 text-sm text-[#5b6b7c]">
-        Signed in as {session?.user?.email ?? "doctor"}
-        {session?.user?.doctorId
-          ? ` · doctor profile ${session.user.doctorId}`
-          : ""}
-        .
-      </p>
-
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Link
-          href="/doctor/profile"
-          className="rounded-md bg-[#146c94] px-4 py-2 text-sm font-semibold text-white hover:bg-[#0f5675]"
-        >
-          Manage profile & schedule
-        </Link>
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/login" });
-          }}
-        >
-          <button
-            type="submit"
-            className="rounded-md border border-[#d9e5ea] bg-white px-4 py-2 text-sm font-medium text-[#102a43] hover:bg-[#f8fbfc]"
-          >
-            Sign out
-          </button>
-        </form>
+  if (!doctorId) {
+    return (
+      <div className="rounded-xl border border-[#e7ebef] bg-white p-6 text-sm text-[#667085]">
+        Your account is not linked to a doctor profile yet. Contact the clinic admin.
       </div>
-    </main>
-  );
+    );
+  }
+
+  const { from, to } = await searchParams;
+  const range = parseDashboardRange({ from, to });
+  const summary = await getDoctorDashboardSummary(doctorId, range);
+
+  return <DoctorDashboard summary={summary} />;
 }

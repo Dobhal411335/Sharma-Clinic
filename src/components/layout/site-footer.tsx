@@ -190,9 +190,9 @@ export function SiteFooter() {
 
   return (
     <footer className="mt-auto border-t border-border bg-surface">
-      <div className="container-page grid gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start lg:gap-12">
+      <div className="px-10 grid gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
         <div className="flex flex-col gap-10">
-          <div className="rounded-md border border-[#e6e2db] bg-white px-5 py-6 sm:px-7 sm:py-7">
+          <div className="rounded-md border border-[#e6e2db] bg-white px-5 py-6 sm:py-7">
             <div className="grid gap-6 sm:grid-cols-2 sm:gap-0">
               <div className="sm:pr-8">
                 <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
@@ -211,7 +211,7 @@ export function SiteFooter() {
                 </ul>
               </div>
 
-              <div className="sm:border-l sm:border-[#e6e2db] sm:pl-8">
+              <div className="sm:border-l sm:border-[#e6e2db] sm:pl-4">
                 <ul className="flex h-full flex-col justify-center space-y-4 text-sm text-muted-foreground">
                   {phones.map((number) => (
                     <li key={number} className="flex items-center gap-2.5">

@@ -109,6 +109,14 @@ const chevronClass =
 const wrapLabel =
   "h-auto min-h-7 whitespace-normal py-1.5 [&>span:last-child]:overflow-visible [&>span:last-child]:whitespace-normal";
 
+const activeNavClass =
+  "data-[active=true]:bg-white data-[active=true]:text-black data-[active=true]:hover:bg-white data-[active=true]:hover:text-black";
+
+function isNavActive(href: string | undefined, pathname: string): boolean {
+  if (!href) return false;
+  return href === pathname || pathname.startsWith(`${href}/`);
+}
+
 function SubItems({
   items,
   pathname,
@@ -136,7 +144,7 @@ function SubItems({
               <SidebarMenuSubButton asChild className={wrapLabel}>
                 <button type="button">
                   <NavIcon name={item.icon} />
-                  <span className="text-base font-serif font-medium text-[#17191c]">{item.title}</span>
+                  <span className="text-base font-serif font-medium">{item.title}</span>
                   <ChevronRight aria-hidden className={`ml-auto ${chevronClass}`} />
                 </button>
               </SidebarMenuSubButton>
@@ -147,8 +155,8 @@ function SubItems({
                   <SidebarMenuSubItem key={child.href}>
                     <SidebarMenuSubButton
                       asChild
-                      isActive={child.href === pathname}
-                      className={wrapLabel}
+                      isActive={isNavActive(child.href, pathname)}
+                      className={`${wrapLabel} ${activeNavClass}`}
                     >
                       <Link href={child.href ?? "#"}>
                         <NavIcon name={child.icon} />
@@ -166,10 +174,14 @@ function SubItems({
 
     return (
       <SidebarMenuSubItem key={item.href}>
-        <SidebarMenuSubButton asChild isActive={item.href === pathname} className={wrapLabel}>
+        <SidebarMenuSubButton
+          asChild
+          isActive={isNavActive(item.href, pathname)}
+          className={`${wrapLabel} ${activeNavClass}`}
+        >
           <Link href={item.href ?? "#"}>
             <NavIcon name={item.icon} />
-            <span className="text-md font-serif font-medium text-white">{item.title}</span>
+            <span className="text-md font-serif font-medium">{item.title}</span>
           </Link>
         </SidebarMenuSubButton>
       </SidebarMenuSubItem>
@@ -192,7 +204,12 @@ function TopItems({
     if (!item.children?.length) {
       return (
         <SidebarMenuItem key={item.href}>
-          <SidebarMenuButton asChild isActive={item.href === pathname} tooltip={item.title}>
+          <SidebarMenuButton
+            asChild
+            isActive={isNavActive(item.href, pathname)}
+            tooltip={item.title}
+            className={activeNavClass}
+          >
             <Link href={item.href ?? "#"}>
               <NavIcon name={item.icon} />
               <span className="font-serif text-base">{item.title}</span>
@@ -214,7 +231,12 @@ function TopItems({
         <SidebarMenuItem>
           {item.href ? (
             <>
-              <SidebarMenuButton asChild isActive={item.href === pathname} tooltip={item.title}>
+              <SidebarMenuButton
+                asChild
+                isActive={isNavActive(item.href, pathname)}
+                tooltip={item.title}
+                className={activeNavClass}
+              >
                 <Link href={item.href}>
                   <NavIcon name={item.icon} />
                   <span className="font-serif text-base">{item.title}</span>

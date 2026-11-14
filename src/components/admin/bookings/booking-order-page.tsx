@@ -130,7 +130,10 @@ function statusBadgeClass(status: string): string {
     case "FAILED":
     case "CANCELLED":
     case "EXPIRED":
+    case "NO_SHOW":
       return "border-rose-200 bg-rose-50 text-rose-800";
+    case "COMPLETED":
+      return "border-sky-200 bg-sky-50 text-sky-800";
     default:
       return "border-slate-200 bg-slate-50 text-slate-700";
   }
@@ -217,7 +220,9 @@ export function BookingOrderPage() {
       const nextStatus: BookingStatusUpdate =
         detail.appointmentStatus === "ACCEPTED" ||
         detail.appointmentStatus === "DECLINED" ||
-        detail.appointmentStatus === "PENDING"
+        detail.appointmentStatus === "PENDING" ||
+        detail.appointmentStatus === "COMPLETED" ||
+        detail.appointmentStatus === "NO_SHOW"
           ? detail.appointmentStatus
           : "PENDING";
       setActionStatus(nextStatus);
@@ -246,7 +251,11 @@ export function BookingOrderPage() {
           ? "Appointment accepted"
           : actionStatus === "DECLINED"
             ? "Appointment declined"
-            : "Status updated",
+            : actionStatus === "COMPLETED"
+              ? "Appointment marked completed"
+              : actionStatus === "NO_SHOW"
+                ? "Appointment marked as no show"
+                : "Status updated",
       );
       await load();
     } catch (error) {
@@ -321,6 +330,8 @@ export function BookingOrderPage() {
                 <SelectItem value="PENDING">Pending acceptance</SelectItem>
                 <SelectItem value="ACCEPTED">Accepted</SelectItem>
                 <SelectItem value="DECLINED">Declined</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="NO_SHOW">No show</SelectItem>
                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 <SelectItem value="EXPIRED">Expired</SelectItem>
               </SelectContent>
@@ -625,6 +636,8 @@ export function BookingOrderPage() {
                         <SelectItem value="PENDING">Pending</SelectItem>
                         <SelectItem value="ACCEPTED">Accepted</SelectItem>
                         <SelectItem value="DECLINED">Declined</SelectItem>
+                        <SelectItem value="COMPLETED">Completed</SelectItem>
+                        <SelectItem value="NO_SHOW">No show</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

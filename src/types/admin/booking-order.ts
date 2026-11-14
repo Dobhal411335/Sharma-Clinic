@@ -70,4 +70,9 @@ export type BookingOrderListResult = {
   doctors: Array<{ id: string; name: string }>;
 };
 
-export type BookingStatusUpdate = "PENDING" | "ACCEPTED" | "DECLINED";
+export type BookingStatusUpdate =
+  | "PENDING"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "COMPLETED"
+  | "NO_SHOW";

@@ -22,11 +22,11 @@ export default async function AdminLayout({
     <AdminShell
       email={session.user.email}
       name={session.user.name}
-      signOut={<SignOutButton appearance="sidebar" />}
-      headerSignOut={<SignOutButton appearance="header" />}
+      signOut={<SignOutButton appearance="sidebar" role="ADMIN" />}
+      headerSignOut={<SignOutButton appearance="header" role="ADMIN" />}
     >
       <Suspense fallback={null}>
-        <WelcomeToast role="ADMIN" />
+        <WelcomeToast role="ADMIN" name={session.user.name} />
       </Suspense>
       {children}
     </AdminShell>

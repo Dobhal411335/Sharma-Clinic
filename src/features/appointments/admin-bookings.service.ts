@@ -18,8 +18,6 @@ import type {
   BookingStatusUpdate,
 } from "@/types/admin/booking-order";
 
-const REVIEW_STATUSES: AppointmentStatus[] = ["PENDING", "ACCEPTED", "DECLINED"];
-
 function clinicDayBounds(isoDate: string): { start: Date; end: Date } {
   // Asia/Kolkata = UTC+05:30
   const start = new Date(`${isoDate}T00:00:00+05:30`);
@@ -131,6 +129,54 @@ export type ListAdminBookingsInput = {
   date?: string;
 };
 
+function assertStatusTransition(
+  from: AppointmentStatus,
+  to: BookingStatusUpdate,
+): void {
+  if (from === "PENDING_PAYMENT") {
+    if (to !== "DECLINED") {
+      throw new Error("Cannot accept an unpaid booking.");
+    }
+    return;
+  }
+
+  if (from === "PENDING") {
+    if (to !== "PENDING" && to !== "ACCEPTED" && to !== "DECLINED") {
+      throw new Error(
+        `Cannot change status from PENDING to ${to}. Accept or decline first.`,
+      );
+    }
+    return;
+  }
+
+  if (from === "ACCEPTED") {
+    if (
+      to !== "ACCEPTED" &&
+      to !== "COMPLETED" &&
+      to !== "NO_SHOW" &&
+      to !== "DECLINED"
+    ) {
+      throw new Error(
+        `Cannot change status from ACCEPTED to ${to}. Use completed, no show, or declined.`,
+      );
+    }
+    return;
+  }
+
+  if (from === "DECLINED") {
+    if (to !== "DECLINED" && to !== "PENDING" && to !== "ACCEPTED") {
+      throw new Error(
+        `Cannot change status from DECLINED to ${to}. Only reviewable statuses are allowed.`,
+      );
+    }
+    return;
+  }
+
+  throw new Error(
+    `Cannot change status from ${from}. Only reviewable bookings can be updated.`,
+  );
+}
+
 export async function listAdminBookings(
   input: ListAdminBookingsInput = {},
 ): Promise<BookingOrderListResult> {
@@ -169,11 +215,16 @@ export async function listAdminBookings(
       ...(date ? {} : { take: 200 }),
     }),
     buildSummary({ date: date || undefined, doctorId }),
-    prisma.doctor.findMany({
-      where: { isActive: true },
-      select: { id: true, displayName: true },
-      orderBy: { displayName: "asc" },
-    }),
+    doctorId
+      ? prisma.doctor.findMany({
+          where: { id: doctorId },
+          select: { id: true, displayName: true },
+        })
+      : prisma.doctor.findMany({
+          where: { isActive: true },
+          select: { id: true, displayName: true },
+          orderBy: { displayName: "asc" },
+        }),
   ]);
 
   return {
@@ -183,7 +234,10 @@ export async function listAdminBookings(
   };
 }
 
-export async function getAdminBooking(id: string): Promise<BookingOrderDetail> {
+export async function getAdminBooking(
+  id: string,
+  options?: { doctorId?: string },
+): Promise<BookingOrderDetail> {
   const row = await prisma.appointment.findUnique({
     where: { id },
     include: {
@@ -194,6 +248,9 @@ export async function getAdminBooking(id: string): Promise<BookingOrderDetail> {
     },
   });
   if (!row) throw new Error("Booking not found.");
+  if (options?.doctorId && row.doctorId !== options.doctorId) {
+    throw new Error("Booking not found.");
+  }
 
   const latestPaid =
     row.payments.find((p) => p.status === "PAID") ?? row.payments[0] ?? null;
@@ -226,20 +283,20 @@ export async function updateAdminBookingStatus(input: {
   status: BookingStatusUpdate;
   reason?: string;
   actorUserId: string;
+  doctorId?: string;
 }): Promise<BookingOrderDetail> {
   const existing = await prisma.appointment.findUnique({
     where: { id: input.id },
-    select: { id: true, status: true },
+    select: { id: true, status: true, doctorId: true },
   });
   if (!existing) throw new Error("Booking not found.");
-
-  if (!REVIEW_STATUSES.includes(existing.status) && existing.status !== "PENDING_PAYMENT") {
-    throw new Error(
-      `Cannot change status from ${existing.status}. Only reviewable bookings can be updated.`,
-    );
+  if (input.doctorId && existing.doctorId !== input.doctorId) {
+    throw new Error("Booking not found.");
   }
 
-  // Unpaid holds cannot be accepted; admin may decline/cancel them as DECLINED.
+  assertStatusTransition(existing.status, input.status);
+
+  // Unpaid holds cannot be accepted; staff may decline them as DECLINED.
   if (existing.status === "PENDING_PAYMENT" && input.status === "ACCEPTED") {
     throw new Error("Cannot accept an unpaid booking.");
   }
@@ -253,14 +310,25 @@ export async function updateAdminBookingStatus(input: {
     data.confirmedAt = new Date();
     data.cancellationReason = null;
     data.cancelledAt = null;
+    data.completedAt = null;
   } else if (input.status === "DECLINED") {
     data.cancelledAt = new Date();
     data.cancellationReason =
       reason || "The clinic was unable to accept this appointment request.";
+    data.completedAt = null;
   } else if (input.status === "PENDING") {
     data.confirmedAt = null;
     data.cancelledAt = null;
     data.cancellationReason = null;
+    data.completedAt = null;
+  } else if (input.status === "COMPLETED") {
+    data.completedAt = new Date();
+    data.cancellationReason = null;
+    data.cancelledAt = null;
+  } else if (input.status === "NO_SHOW") {
+    data.completedAt = null;
+    data.cancelledAt = new Date();
+    data.cancellationReason = reason || "Patient did not attend the appointment.";
   }
 
   await prisma.appointment.update({
@@ -277,6 +345,7 @@ export async function updateAdminBookingStatus(input: {
       from: existing.status,
       to: input.status,
       hasReason: Boolean(reason),
+      scopedDoctorId: input.doctorId ?? null,
     },
   });
 
@@ -288,5 +357,35 @@ export async function updateAdminBookingStatus(input: {
     );
   }
 
-  return getAdminBooking(input.id);
+  return getAdminBooking(input.id, { doctorId: input.doctorId });
+}
+
+export async function listDoctorBookings(
+  doctorId: string,
+  input: Omit<ListAdminBookingsInput, "doctorId"> = {},
+): Promise<BookingOrderListResult> {
+  return listAdminBookings({ ...input, doctorId });
+}
+
+export async function getDoctorBooking(
+  doctorId: string,
+  id: string,
+): Promise<BookingOrderDetail> {
+  return getAdminBooking(id, { doctorId });
+}
+
+export async function updateDoctorBookingStatus(input: {
+  doctorId: string;
+  id: string;
+  status: BookingStatusUpdate;
+  reason?: string;
+  actorUserId: string;
+}): Promise<BookingOrderDetail> {
+  return updateAdminBookingStatus({
+    id: input.id,
+    status: input.status,
+    reason: input.reason,
+    actorUserId: input.actorUserId,
+    doctorId: input.doctorId,
+  });
 }

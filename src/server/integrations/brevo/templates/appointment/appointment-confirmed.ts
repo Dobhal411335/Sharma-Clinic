@@ -17,9 +17,6 @@ export async function renderAppointmentConfirmedEmail(
         `<strong>Payment:</strong> ${escapeHtml(data.paymentInfo.trim())}`,
       )
     : "";
-  const visitInstructions =
-    data.visitInstructions?.trim() ||
-    "Please arrive a few minutes early and bring a valid ID. Contact the clinic if you need to reschedule.";
   const button = data.manageUrl
     ? primaryButton("View appointment details", data.manageUrl)
     : "";
@@ -42,7 +39,6 @@ export async function renderAppointmentConfirmedEmail(
         .join("\n"),
     )}
     ${paymentInfo}
-    ${highlightBox(`<strong>Visit instructions:</strong> ${escapeHtml(visitInstructions)}`)}
     ${button}
     ${closingHtml(escapeHtml(config.clinicName))}
   `.trim();
@@ -64,7 +60,6 @@ export async function renderAppointmentConfirmedEmail(
       ? `Payment: ${sanitizeText(data.paymentInfo.trim())}`
       : "",
     "",
-    `Visit instructions: ${sanitizeText(visitInstructions)}`,
     data.manageUrl ? `\nView details: ${data.manageUrl}` : "",
     "",
     `Thank you,\n${config.clinicName}`,

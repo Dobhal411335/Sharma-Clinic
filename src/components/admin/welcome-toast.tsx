@@ -6,12 +6,25 @@ import { useEffect, useRef } from "react";
 import type { StaffRole } from "@/lib/auth/types";
 import { showSuccess } from "@/lib/toast";
 
-const WELCOME_COPY: Record<StaffRole, string> = {
-  ADMIN: "Welcome back. You are signed in to the admin dashboard.",
-  DOCTOR: "Welcome back. You are signed in to the doctor dashboard.",
-};
+function welcomeMessage(role: StaffRole, name?: string | null): string {
+  const trimmed = name?.trim();
+  if (role === "DOCTOR") {
+    if (trimmed) {
+      const display = trimmed.replace(/^dr\.?\s+/i, "");
+      return `Welcome back, Dr. ${display}.`;
+    }
+    return "Welcome back. You are signed in to the doctor dashboard.";
+  }
+  return "Welcome back. You are signed in to the admin dashboard.";
+}
 
-export function WelcomeToast({ role }: { role: StaffRole }) {
+export function WelcomeToast({
+  role,
+  name,
+}: {
+  role: StaffRole;
+  name?: string | null;
+}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -20,13 +33,13 @@ export function WelcomeToast({ role }: { role: StaffRole }) {
   useEffect(() => {
     if (shown.current || searchParams.get("welcome") !== "1") return;
     shown.current = true;
-    showSuccess(WELCOME_COPY[role], { id: "staff-welcome" });
+    showSuccess(welcomeMessage(role, name), { id: "staff-welcome" });
 
     const next = new URLSearchParams(searchParams.toString());
     next.delete("welcome");
     const query = next.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-  }, [pathname, role, router, searchParams]);
+  }, [name, pathname, role, router, searchParams]);
 
   return null;
 }

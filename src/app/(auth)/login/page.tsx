@@ -4,6 +4,8 @@ import Image from "next/image";
 import { companyDisplayName, pageSeo } from "@/data/site";
 import { getCompanyBasicInfo } from "@/features/company-basic-info/company-basic-info.service";
 
+import { SignedOutToast } from "@/components/admin/signed-out-toast";
+
 import { LoginForm } from "./login-form";
 
 const LOGIN_IMAGE =
@@ -51,6 +53,7 @@ export default async function LoginPage() {
 
           <div className="mt-8 rounded-xl border border-[#d9e5ea] bg-white p-6 shadow-[0_12px_40px_-24px_rgba(16,42,67,0.45)] sm:p-8">
             <Suspense fallback={<div className="h-64 animate-pulse rounded-md bg-[#e8f2f7]" />}>
+              <SignedOutToast />
               <LoginForm />
             </Suspense>
           </div>

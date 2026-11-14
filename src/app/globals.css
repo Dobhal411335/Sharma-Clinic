@@ -785,8 +785,15 @@
 
 .admin-shell [data-sidebar="menu-button"][data-active="true"],
 .admin-shell [data-sidebar="menu-sub-button"][data-active="true"] {
-  background-color: #167d91;
-  color: #ffffff;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.admin-shell [data-sidebar="menu-button"][data-active="true"] span,
+.admin-shell [data-sidebar="menu-sub-button"][data-active="true"] span,
+.admin-shell [data-sidebar="menu-button"][data-active="true"] svg,
+.admin-shell [data-sidebar="menu-sub-button"][data-active="true"] svg {
+  color: #000000;
 }
 
 .admin-shell .admin-accordion {

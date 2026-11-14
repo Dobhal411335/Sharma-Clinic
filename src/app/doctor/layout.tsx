@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { auth } from "@/auth";
+import { SignOutButton } from "@/components/admin/sign-out-button";
 import { WelcomeToast } from "@/components/admin/welcome-toast";
+import { DoctorShell } from "@/components/doctor/doctor-shell";
 import { getDashboardPath, isDoctor } from "@/lib/auth/permissions";
 
 export default async function DoctorLayout({
@@ -17,11 +19,16 @@ export default async function DoctorLayout({
   }
 
   return (
-    <>
+    <DoctorShell
+      email={session.user.email}
+      name={session.user.name}
+      signOut={<SignOutButton appearance="sidebar" role="DOCTOR" />}
+      headerSignOut={<SignOutButton appearance="header" role="DOCTOR" />}
+    >
       <Suspense fallback={null}>
-        <WelcomeToast role="DOCTOR" />
+        <WelcomeToast role="DOCTOR" name={session.user.name} />
       </Suspense>
       {children}
-    </>
+    </DoctorShell>
   );
 }

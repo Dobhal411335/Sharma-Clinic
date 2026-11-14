@@ -13,7 +13,7 @@ type RouteContext = {
 };
 
 const patchSchema = z.object({
-  status: z.enum(["PENDING", "ACCEPTED", "DECLINED"]),
+  status: z.enum(["PENDING", "ACCEPTED", "DECLINED", "COMPLETED", "NO_SHOW"]),
   reason: z.string().max(1000).optional(),
 });
 
@@ -56,7 +56,7 @@ async function patchHandler(
     return jsonError(
       400,
       "INVALID_BODY",
-      "status must be PENDING, ACCEPTED, or DECLINED.",
+      "status must be PENDING, ACCEPTED, DECLINED, COMPLETED, or NO_SHOW.",
     );
   }
 

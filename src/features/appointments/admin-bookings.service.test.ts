@@ -94,7 +94,7 @@ describe("updateAdminBookingStatus", () => {
 
   it("accepts a pending booking and notifies the patient", async () => {
     appointmentFindUnique
-      .mockResolvedValueOnce({ id: "appt_1", status: "PENDING" })
+      .mockResolvedValueOnce({ id: "appt_1", status: "PENDING", doctorId: "doc_1" })
       .mockResolvedValueOnce(baseAppointment({ status: "ACCEPTED" }));
 
     const result = await updateAdminBookingStatus({
@@ -119,7 +119,7 @@ describe("updateAdminBookingStatus", () => {
 
   it("declines a pending booking with a reason email", async () => {
     appointmentFindUnique
-      .mockResolvedValueOnce({ id: "appt_1", status: "PENDING" })
+      .mockResolvedValueOnce({ id: "appt_1", status: "PENDING", doctorId: "doc_1" })
       .mockResolvedValueOnce(
         baseAppointment({
           status: "DECLINED",
@@ -151,6 +151,7 @@ describe("updateAdminBookingStatus", () => {
     appointmentFindUnique.mockResolvedValueOnce({
       id: "appt_1",
       status: "PENDING_PAYMENT",
+      doctorId: "doc_1",
     });
 
     await expect(
@@ -169,6 +170,7 @@ describe("updateAdminBookingStatus", () => {
     appointmentFindUnique.mockResolvedValueOnce({
       id: "appt_1",
       status: "COMPLETED",
+      doctorId: "doc_1",
     });
 
     await expect(
@@ -178,5 +180,77 @@ describe("updateAdminBookingStatus", () => {
         actorUserId: "admin_1",
       }),
     ).rejects.toThrow(/Cannot change status/i);
+  });
+
+  it("marks an accepted booking as completed", async () => {
+    appointmentFindUnique
+      .mockResolvedValueOnce({
+        id: "appt_1",
+        status: "ACCEPTED",
+        doctorId: "doc_1",
+      })
+      .mockResolvedValueOnce(baseAppointment({ status: "COMPLETED" }));
+
+    const result = await updateAdminBookingStatus({
+      id: "appt_1",
+      status: "COMPLETED",
+      actorUserId: "admin_1",
+    });
+
+    expect(appointmentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "COMPLETED",
+          completedAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(result.appointmentStatus).toBe("COMPLETED");
+  });
+
+  it("marks an accepted booking as no show", async () => {
+    appointmentFindUnique
+      .mockResolvedValueOnce({
+        id: "appt_1",
+        status: "ACCEPTED",
+        doctorId: "doc_1",
+      })
+      .mockResolvedValueOnce(baseAppointment({ status: "NO_SHOW" }));
+
+    const result = await updateAdminBookingStatus({
+      id: "appt_1",
+      status: "NO_SHOW",
+      actorUserId: "doc_user_1",
+      doctorId: "doc_1",
+    });
+
+    expect(appointmentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "NO_SHOW",
+          cancelledAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(result.appointmentStatus).toBe("NO_SHOW");
+  });
+
+  it("rejects updates for another doctor's booking when scoped", async () => {
+    appointmentFindUnique.mockResolvedValueOnce({
+      id: "appt_1",
+      status: "PENDING",
+      doctorId: "doc_other",
+    });
+
+    await expect(
+      updateAdminBookingStatus({
+        id: "appt_1",
+        status: "ACCEPTED",
+        actorUserId: "doc_user_1",
+        doctorId: "doc_1",
+      }),
+    ).rejects.toThrow(/not found/i);
+
+    expect(appointmentUpdate).not.toHaveBeenCalled();
   });
 });
