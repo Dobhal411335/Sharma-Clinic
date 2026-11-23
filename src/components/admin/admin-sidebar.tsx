@@ -104,13 +104,17 @@ function NavIcon({ name }: { name?: AdminIconName }) {
 }
 
 const chevronClass =
-  "size-4 shrink-0 transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[state=open]/collapsible:rotate-90";
+  "size-4 shrink-0 text-current transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] group-data-[state=open]/collapsible:rotate-90";
 
 const wrapLabel =
   "h-auto min-h-7 whitespace-normal py-1.5 [&>span:last-child]:overflow-visible [&>span:last-child]:whitespace-normal";
 
 const activeNavClass =
   "data-[active=true]:bg-white data-[active=true]:text-black data-[active=true]:hover:bg-white data-[active=true]:hover:text-black";
+
+/** Sibling expand control: white on teal, black when the peer nav button is active. */
+const activeMenuActionClass =
+  "text-white hover:text-white peer-data-[active=true]/menu-button:text-black peer-data-[active=true]/menu-button:hover:bg-transparent peer-data-[active=true]/menu-button:hover:text-black";
 
 function isNavActive(href: string | undefined, pathname: string): boolean {
   if (!href) return false;
@@ -243,7 +247,10 @@ function TopItems({
                 </Link>
               </SidebarMenuButton>
               <CollapsibleTrigger asChild>
-                <SidebarMenuAction aria-label={`Toggle ${item.title}`}>
+                <SidebarMenuAction
+                  aria-label={`Toggle ${item.title}`}
+                  className={activeMenuActionClass}
+                >
                   <ChevronRight className={chevronClass} />
                 </SidebarMenuAction>
               </CollapsibleTrigger>
@@ -252,7 +259,7 @@ function TopItems({
             <CollapsibleTrigger asChild>
               <SidebarMenuButton tooltip={item.title} className={wrapLabel}>
                 <NavIcon name={item.icon} />
-                <span className="font-serif text-base" >{item.title}</span>
+                <span className="font-serif text-base">{item.title}</span>
                 <ChevronRight aria-hidden className={`ml-auto ${chevronClass}`} />
               </SidebarMenuButton>
             </CollapsibleTrigger>

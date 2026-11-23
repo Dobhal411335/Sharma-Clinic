@@ -8,6 +8,10 @@ import { Outfit } from "next/font/google";
 import { IBM_Plex_Mono } from "next/font/google";
 import { Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
+
+/** Company contact details come from the DB and must not be frozen into a static shell. */
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const company = await getCompanyBasicInfo();
   return buildCompanyMetadata(company);

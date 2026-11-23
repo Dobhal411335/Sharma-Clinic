@@ -796,6 +796,17 @@
   color: #000000;
 }
 
+/* Expand chevron sits beside the button; match active white pill with black icon. */
+.admin-shell
+  [data-sidebar="menu-button"][data-active="true"]
+  ~ [data-sidebar="menu-action"],
+.admin-shell
+  [data-sidebar="menu-button"][data-active="true"]
+  ~ [data-sidebar="menu-action"]
+  svg {
+  color: #000000;
+}
+
 .admin-shell .admin-accordion {
   overflow: hidden;
 }

@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 
 import {
@@ -22,6 +23,11 @@ import {
   writeSingleton,
   type JsonRecord,
 } from "@/features/cms/store";
+
+/** Invalidate storefront HTML after CMS writes so production is not stuck on a prerender. */
+function revalidateStorefront() {
+  revalidatePath("/", "layout");
+}
 
 function stripMeta(body: JsonRecord): JsonRecord {
   const next = { ...body };
@@ -77,6 +83,7 @@ export function singletonHandlers(options: {
         if (options.afterSave) {
           await options.afterSave(previous?.payload ?? null, saved.payload);
         }
+        revalidateStorefront();
         return jsonData(
           withSite(saved.payload, { id: options.key, updatedAt: saved.updatedAt }),
           "Saved",
@@ -124,6 +131,7 @@ export function collectionHandlers(options: {
           parsed.slug = await uniqueSlug(options.kind, base);
         }
         const created = await createItem(options.kind, parsed);
+        revalidateStorefront();
         return jsonData(created, "Created", 201);
       } catch (error) {
         if (error instanceof ZodError) return jsonMessage(400, zodMessage(error));
@@ -147,6 +155,7 @@ export function collectionHandlers(options: {
           ? await mergeItem(options.kind, id, parsed)
           : await replaceItem(options.kind, id, parsed);
         if (!updated) return jsonMessage(404, "Not found");
+        revalidateStorefront();
         return jsonData(updated, "Saved");
       } catch (error) {
         if (error instanceof ZodError) return jsonMessage(400, zodMessage(error));
@@ -164,6 +173,7 @@ export function collectionHandlers(options: {
         const parsed = options.patch ? options.patch(payload.body) : stripMeta(options.parse(payload.body));
         const updated = await mergeItem(options.kind, id, stripMeta(parsed));
         if (!updated) return jsonMessage(404, "Not found");
+        revalidateStorefront();
         return jsonData(updated, "Saved");
       } catch (error) {
         if (error instanceof ZodError) return jsonMessage(400, zodMessage(error));
@@ -177,6 +187,7 @@ export function collectionHandlers(options: {
       if (!id) return jsonMessage(400, "id is required");
       const removed = await removeItem(options.kind, id);
       if (!removed) return jsonMessage(404, "Not found");
+      revalidateStorefront();
       return jsonData({ id, siteCode: CLINIC_SITE_CODE }, "Deleted");
     },
   };
